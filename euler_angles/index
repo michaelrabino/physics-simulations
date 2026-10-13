@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>קינמטיקה של גוף צפיד: זוויות אוילר</title>
+    
+    <!-- Bootstrap 5 CSS for UI layout -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .container-fluid {
+            max-width: 1400px;
+            margin-top: 20px;
+        }
+        .canvas-container {
+            width: 100%;
+            height: 600px;
+            background-color: #000;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .control-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .math-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+        }
+        .legend-box {
+            display: inline-block;
+            width: 15px;
+            height: 15px;
+            margin-left: 5px;
+            vertical-align: middle;
+        }
+    </style>
+
+    <!-- MathJax for LaTeX rendering -->
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']] },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script type="text/javascript" id="MathJax-script" async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+    </script>
+</head>
+<body>
+
+<div class="container-fluid">
+    <div class="row">
+        <!-- Right Column: Theory, Controls, and Pedagogy -->
+        <div class="col-lg-5">
+            <h2 class="mb-4 text-primary">זוויות אוילר (קונבנציית Z-X-Z)</h2>
+            
+            <!-- Theoretical Background -->
+            <div class="math-section">
+                <h4>רקע תיאורטי</h4>
+                <p>
+                    במכניקה אנליטית, האוריינטציה של גוף צפיד מתוארת על ידי טרנספורמציה ממערכת אינרציאלית (קבועה) למערכת הצמודה לגוף (Principal axes). הטרנספורמציה מתבצעת על ידי מטריצת סיבוב $R$, המורכבת משלוש רוטציות עוקבות, המוגדרות כזוויות אוילר $(\phi, \theta, \psi)$:
+                </p>
+                <ol>
+                    <li>סיבוב בזווית <strong>$\phi$ (נקיפה - Precession)</strong> סביב ציר ה-$Z$ הקבוע. פעולה זו יוצרת את "קו הצומת" (Line of Nodes).</li>
+                    <li>סיבוב בזווית <strong>$\theta$ (נוטציה - Nutation)</strong> סביב קו הצומת (ציר ה-$X$ של המערכת המסובבת הראשונה).</li>
+                    <li>סיבוב בזווית <strong>$\psi$ (ספין - Spin)</strong> סביב ציר ה-$Z$ החדש (הציר הראשי השלישי של הגוף, $e_3$).</li>
+                </ol>
+                <p>
+                    מטריצת המעבר הכוללת היא מכפלת שלוש מטריצות הסיבוב:
+                    $$ R = R_{z''}(\psi) R_{x'}(\theta) R_{z}(\phi) $$
+                </p>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="control-panel">
+                <h4>לוח בקרה (פרמטרים קינמטיים)</h4>
+                
+                <div class="mb-3">
+                    <div class="slider-label">
+                        <span>זווית נקיפה (Precession) $\phi$</span>
+                        <span id="phi-val">0°</span>
+                    </div>
+                    <input type="range" class="form-range" id="phi-slider" min="0" max="360" value="0">
+                    <small class="text-muted">סיבוב סביב ציר Z הקבוע. טווח: $[0, 2\pi]$</small>
+                </div>
+
+                <div class="mb-3">
+                    <div class="slider-label">
+                        <span>זווית נוטציה (Nutation) $\theta$</span>
+                        <span id="theta-val">0°</span>
+                    </div>
+                    <input type="range" class="form-range" id="theta-slider" min="0" max="180" value="0">
+                    <small class="text-muted">הטיה סביב קו הצומת. טווח: $[0, \pi]$</small>
+                </div>
+
+                <div class="mb-3">
+                    <div class="slider-label">
+                        <span>זווית ספין (Spin) $\psi$</span>
+                        <span id="psi-val">0°</span>
+                    </div>
+                    <input type="range" class="form-range" id="psi-slider" min="0" max="360" value="0">
+                    <small class="text-muted">סיבוב סביב ציר הגוף $e_3$. טווח: $[0, 2\pi]$</small>
+                </div>
+                
+                <button class="btn btn-outline-primary w-100 mt-2" onclick="resetAngles()">אפס זוויות</button>
+            </div>
+
+            <!-- Pedagogical Guidance -->
+            <div class="math-section">
+                <h4>הכוונה פדגוגית לסטודנט</h4>
+                <p>השתמש במחוונים כדי לחקור את המצבים הבאים:</p>
+                <ul>
+                    <li><strong>קונפיגורצית התחלה:</strong> כאשר כל הזווית מאופסות, צירי הגוף מתלכדים עם צירי המרחב הקבועים.</li>
+                    <li><strong>נעילת גימבל (Gimbal Lock):</strong> קבע $\theta = 0^\circ$ ושחק עם $\phi$ ו-$\psi$. שים לב ששתי הזוויות מסובבות את הגוף סביב אותו ציר (ציר ה-$Z$). המערכת מאבדת דרגת חופש אחת. תופעה זו מהווה קושי מתמטי בשימוש בזוויות אוילר.</li>
+                    <li><strong>קו הצומת:</strong> קבע $\theta = 45^\circ$. כעת שנה את $\phi$. שים לב כיצד הקו הלבן המקווקו (קו הצומת) מסתובב במישור ה-$XY$ הקבוע. ציר ה-$e_3$ של הגוף (צהוב) מבצע חרוט סביב ציר ה-$Z$ (כחול) - זוהי תנועת הנקיפה הקלאסית של סביבון!</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Left Column: Visualization -->
+        <div class="col-lg-7">
+            <div class="math-section mb-2 d-flex justify-content-between flex-wrap">
+                <div><strong>מרחב קבוע:</strong> 
+                    <span class="legend-box" style="background:red;"></span> X
+                    <span class="legend-box" style="background:green;"></span> Y
+                    <span class="legend-box" style="background:blue;"></span> Z
+                </div>
+                <div><strong>צירי הגוף:</strong> 
+                    <span class="legend-box" style="background:cyan;"></span> $e_1$
+                    <span class="legend-box" style="background:magenta;"></span> $e_2$
+                    <span class="legend-box" style="background:yellow;"></span> $e_3$
+                </div>
+                <div><strong>קו הצומת:</strong> 
+                    <span class="legend-box" style="background:white; border: 1px dashed black;"></span> (Line of Nodes)
+                </div>
+            </div>
+            <!-- Interactive 3D Canvas -->
+            <div id="canvas-container" class="canvas-container"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Three.js Library & OrbitControls via CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+<script>
+    // --- 1. SETUP THREE.JS SCENE ---
+    
+    // In physics, it's standard to have Z as the up-axis.
+    THREE.Object3D.DefaultUp.set(0, 0, 1);
+    
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x111111);
+
+    // Camera setup
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+    camera.position.set(7, 7, 5); // Look from an angle
+    camera.lookAt(0, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    container.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.05;
+
+    // --- 2. LIGHTING ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    scene.add(ambientLight);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+    directionalLight.position.set(10, 10, 10);
+    scene.add(directionalLight);
+
+    // --- 3. PHYSICS VISUALIZATION ELEMENTS ---
+    
+    const axisLength = 4;
+    const origin = new THREE.Vector3(0, 0, 0);
+
+    // A. Fixed Space Axes (X, Y, Z) - Red, Green, Blue
+    scene.add(new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), origin, axisLength, 0xff0000, 0.2, 0.1)); // X
+    scene.add(new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), origin, axisLength, 0x00ff00, 0.2, 0.1)); // Y
+    scene.add(new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), origin, axisLength, 0x0000ff, 0.2, 0.1)); // Z
+
+    // B. Create the Kinematic Chain (Nested Hierarchy to mimic matrix multiplication)
+    // R = Rz(phi) * Rx(theta) * Rz(psi)
+    
+    // Node 1: Handles Precession (Phi) around Fixed Z
+    const phiNode = new THREE.Group();
+    scene.add(phiNode);
+    
+    // Line of Nodes: The X-axis of the phiNode (intersection of XY and e1e2 planes)
+    const lineOfNodesMat = new THREE.LineDashedMaterial({ color: 0xffffff, dashSize: 0.2, gapSize: 0.1 });
+    const lineOfNodesGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-axisLength, 0, 0), new THREE.Vector3(axisLength, 0, 0)]);
+    const lineOfNodes = new THREE.Line(lineOfNodesGeo, lineOfNodesMat);
+    lineOfNodes.computeLineDistances(); // Required for dashed lines
+    phiNode.add(lineOfNodes); // Attached to phiNode, so it rotates with Phi
+
+    // Node 2: Handles Nutation (Theta) around the Line of Nodes (which is the local X axis of phiNode)
+    const thetaNode = new THREE.Group();
+    phiNode.add(thetaNode);
+
+    // Node 3: Handles Spin (Psi) around the new local Z axis (e3)
+    const psiNode = new THREE.Group();
+    thetaNode.add(psiNode);
+
+    // C. The Rigid Body and Body Axes (Attached to the final psiNode)
+    
+    // The Rigid Body (A rectangular block representing an asymmetric top, e.g. a book)
+    const bodyGeometry = new THREE.BoxGeometry(3, 2, 1);
+    const bodyMaterial = new THREE.MeshPhongMaterial({ 
+        color: 0x888888, 
+        transparent: true, 
+        opacity: 0.6,
+        wireframe: false
+    });
+    const rigidBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
+    psiNode.add(rigidBody);
+
+    // Body Axes (e1, e2, e3) - Cyan, Magenta, Yellow
+    // These rotate exactly with the rigid body
+    const e1Arrow = new THREE.ArrowHelper(new THREE.Vector3(1, 0, 0), origin, axisLength*1.1, 0x00ffff, 0.2, 0.1);
+    const e2Arrow = new THREE.ArrowHelper(new THREE.Vector3(0, 1, 0), origin, axisLength*1.1, 0xff00ff, 0.2, 0.1);
+    const e3Arrow = new THREE.ArrowHelper(new THREE.Vector3(0, 0, 1), origin, axisLength*1.1, 0xffff00, 0.2, 0.1);
+    psiNode.add(e1Arrow);
+    psiNode.add(e2Arrow);
+    psiNode.add(e3Arrow);
+
+    // --- 4. USER INTERACTION & UPDATE LOGIC ---
+
+    const phiSlider = document.getElementById('phi-slider');
+    const thetaSlider = document.getElementById('theta-slider');
+    const psiSlider = document.getElementById('psi-slider');
+    
+    const phiVal = document.getElementById('phi-val');
+    const thetaVal = document.getElementById('theta-val');
+    const psiVal = document.getElementById('psi-val');
+
+    // Convert degrees to radians
+    const degToRad = (deg) => deg * Math.PI / 180;
+
+    function updatePhysics() {
+        // Fetch values from UI
+        const phi = parseFloat(phiSlider.value);
+        const theta = parseFloat(thetaSlider.value);
+        const psi = parseFloat(psiSlider.value);
+
+        // Update UI text
+        phiVal.innerText = phi + "°";
+        thetaVal.innerText = theta + "°";
+        psiVal.innerText = psi + "°";
+
+        // Apply Rotations to the kinematic chain
+        // 1. Precession: Rotate around Z
+        phiNode.rotation.z = degToRad(phi);
+        
+        // 2. Nutation: Rotate around new X (line of nodes)
+        thetaNode.rotation.x = degToRad(theta);
+        
+        // 3. Spin: Rotate around new Z (e3 axis)
+        psiNode.rotation.z = degToRad(psi);
+    }
+
+    // Attach event listeners
+    phiSlider.addEventListener('input', updatePhysics);
+    thetaSlider.addEventListener('input', updatePhysics);
+    psiSlider.addEventListener('input', updatePhysics);
+
+    window.resetAngles = function() {
+        phiSlider.value = 0;
+        thetaSlider.value = 0;
+        psiSlider.value = 0;
+        updatePhysics();
+    }
+
+    // Handle window resize
+    window.addEventListener('resize', onWindowResize, false);
+    function onWindowResize() {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    // --- 5. RENDER LOOP ---
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update(); // Required for damping
+        renderer.render(scene, camera);
+    }
+    
+    // Initialize
+    updatePhysics();
+    animate();
+
+</script>
+</body>
+</html>
