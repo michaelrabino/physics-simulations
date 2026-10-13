@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>סימולציית תנועה הרמונית אקדמית</title>
+    
+    <!-- Bootstrap 5 RTL CSS for clean, academic UI -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- Plotly.js for dynamic phase space and time series charts -->
+    <script src="https://cdn.plot.ly/plotly-2.25.2.min.js"></script>
+    
+    <!-- MathJax for rendering theoretical LaTeX equations -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        .card {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            margin-bottom: 20px;
+            border: none;
+            border-top: 4px solid #0d6efd;
+        }
+        canvas {
+            background-color: #ffffff;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            width: 100%;
+            height: 200px;
+        }
+        .control-label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: 500;
+            margin-bottom: 0.2rem;
+        }
+        .units {
+            color: #6c757d;
+            font-size: 0.9em;
+            direction: ltr;
+        }
+        .plot-container {
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid py-4">
+    <header class="pb-3 mb-4 border-bottom">
+        <h1 class="h2 text-primary">מתנד הרמוני מרוסן ומאולץ (Damped & Driven Harmonic Oscillator)</h1>
+        <p class="text-muted">מודול אינטראקטיבי להוראת מכניקה אנליטית ומשוואות דיפרנציאליות</p>
+    </header>
+
+    <div class="row">
+        <!-- Sidebar: Theory and Controls -->
+        <div class="col-lg-4">
+            
+            <!-- Theoretical Background -->
+            <div class="card p-3">
+                <h4 class="card-title h5 border-bottom pb-2">רקע תיאורטי</h4>
+                <p class="card-text text-secondary" style="font-size: 0.95em;">
+                    תנועתה של מסה $m$ המחוברת לקפיץ בעל קבוע $k$, נעה בתווך בעל מקדם חיכוך ויסקוזי $c$, ונתונה תחת כוח חיצוני מחזורי באמפליטודה $F_0$ ותדירות $\omega_d$, מתוארת על ידי המשוואה הדיפרנציאלית הבאה (עפ"י החוק השני של ניוטון):
+                </p>
+                <div class="math-container text-center" dir="ltr">
+                    $$ m\ddot{x} + c\dot{x} + kx = F_0 \cos(\omega_d t) $$
+                </div>
+                <p class="card-text text-secondary" style="font-size: 0.95em; margin-top: 10px;">
+                    בצורה קנונית, נגדיר תדירות טבעית $\omega_0 = \sqrt{k/m}$ ויחס ריסון $\zeta = \frac{c}{2\sqrt{mk}}$:
+                </p>
+                <div class="math-container text-center" dir="ltr">
+                    $$ \ddot{x} + 2\zeta\omega_0\dot{x} + \omega_0^2x = \frac{F_0}{m} \cos(\omega_d t) $$
+                </div>
+            </div>
+
+            <!-- Control Panel -->
+            <div class="card p-3">
+                <h4 class="card-title h5 border-bottom pb-2">לוח בקרה ופרמטרים</h4>
+                
+                <!-- Mass Slider -->
+                <div class="mb-3">
+                    <div class="control-label">
+                        <span>מסה ($m$)</span>
+                        <span class="units">1.0 [kg]</span>
+                    </div>
+                    <input type="range" class="form-range" id="paramM" min="0.1" max="5.0" step="0.1" value="1.0">
+                </div>
+
+                <!-- Spring Constant Slider -->
+                <div class="mb-3">
+                    <div class="control-label">
+                        <span>קבוע קפיץ ($k$)</span>
+                        <span class="units">10.0 [N/m]</span>
+                    </div>
+                    <input type="range" class="form-range" id="paramK" min="1" max="50" step="1" value="10">
+                </div>
+
+                <!-- Damping Slider -->
+                <div class="mb-3">
+                    <div class="control-label">
+                        <span>מקדם ריסון ($c$)</span>
+                        <span class="units">0.5 [N·s/m]</span>
+                    </div>
+                    <input type="range" class="form-range" id="paramC" min="0" max="10" step="0.1" value="0.5">
+                </div>
+
+                <!-- Driving Force Amplitude -->
+                <div class="mb-3">
+                    <div class="control-label">
+                        <span>אמפליטודת כוח מאלץ ($F_0$)</span>
+                        <span class="units">0.0 [N]</span>
+                    </div>
+                    <input type="range" class="form-range" id="paramF0" min="0" max="20" step="0.5" value="0">
+                </div>
+
+                <!-- Driving Frequency -->
+                <div class="mb-3">
+                    <div class="control-label">
+                        <span>תדירות מאלצת ($\omega_d$)</span>
+                        <span class="units">3.16 [rad/s]</span>
+                    </div>
+                    <input type="range" class="form-range" id="paramOmega" min="0.1" max="10" step="0.1" value="3.16">
+                </div>
+
+                <!-- Actions -->
+                <div class="d-flex gap-2 mt-3">
+                    <button class="btn btn-primary w-50" id="btnPause">השהה/המשך</button>
+                    <button class="btn btn-outline-danger w-50" id="btnReset">איפוס מערכת</button>
+                </div>
+            </div>
+
+            <!-- Pedagogical Guidance -->
+            <div class="card p-3 bg-light">
+                <h4 class="card-title h6 text-success border-bottom pb-2">הכוונה פדגוגית ומשימות חקר</h4>
+                <ul class="text-secondary small ps-3 m-0">
+                    <li class="mb-2"><strong>תהודה (Resonance):</strong> קבעו את הריסון ($c$) ל-0.1, ואת האמפליטודה ($F_0$) ל-5. שנו את $\omega_d$ כך שיתקרב לתדירות הטבעית $\sqrt{k/m}$. צפו בגידול משרעת התנודה ובמסלול במרחב הפאזה.</li>
+                    <li class="mb-2"><strong>פעימות (Beats):</strong> אפסו לחלוטין את הריסון ($c=0$), וקבעו תדר מאלץ $\omega_d$ הקרוב מאוד (אך לא זהה) לתדר הטבעי $\omega_0$. שימו לב למעטפת המיקום כתלות בזמן.</li>
+                    <li><strong>ריסון קריטי:</strong> נתקו את הכוח המאלץ ($F_0=0$). חפשו את הערך של $c$ שעבורו המערכת חוזרת לשיווי משקל ללא חציית ציר ה-x (היעזרו בקשר התיאורטי $c = 2\sqrt{mk}$).</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Main Visualization Area -->
+        <div class="col-lg-8">
+            <!-- 2D Canvas Simulation -->
+            <div class="card p-3 mb-3">
+                <h4 class="card-title h6 text-secondary mb-3">ויזואליזציה קינמטית 2D</h4>
+                <canvas id="simCanvas"></canvas>
+            </div>
+
+            <div class="row">
+                <!-- Position vs Time Plot -->
+                <div class="col-md-7 mb-3">
+                    <div class="card p-2">
+                        <div id="plotXT" class="plot-container"></div>
+                    </div>
+                </div>
+                
+                <!-- Phase Space Plot -->
+                <div class="col-md-5 mb-3">
+                    <div class="card p-2">
+                        <div id="plotPhase" class="plot-container"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * PhysicsEdu-WebDev Physics Engine
+     * Uses 4th Order Runge-Kutta (RK4) for numerical stability, 
+     * essential for proper phase space geometry in harmonic motion.
+     */
+
+    // 1. State Variables & Physics Parameters
+    let state = {
+        x: 3.0,     // Initial position (m)
+        v: 0.0,     // Initial velocity (m/s)
+        t: 0.0      // Time (s)
+    };
+
+    let params = {
+        m: 1.0,     // Mass (kg)
+        k: 10.0,    // Spring constant (N/m)
+        c: 0.5,     // Damping coefficient (N*s/m)
+        F0: 0.0,    // Driving force amplitude (N)
+        omega_d: 3.16 // Driving frequency (rad/s)
+    };
+
+    // Simulation control
+    let isRunning = true;
+    let animationId;
+    let timeStep = 0.016; // Physics step (~60 FPS)
+
+    // Data buffers for Plotly graphs
+    const maxDataPoints = 300;
+    let history = {
+        t: [],
+        x: [],
+        v: []
+    };
+
+    // 2. DOM Elements Binding
+    const sliders = {
+        m: document.getElementById('paramM'),
+        k: document.getElementById('paramK'),
+        c: document.getElementById('paramC'),
+        F0: document.getElementById('paramF0'),
+        omega_d: document.getElementById('paramOmega')
+    };
+
+    // Update UI units next to sliders
+    function updateLabels() {
+        sliders.m.previousElementSibling.querySelector('.units').innerText = Number(sliders.m.value).toFixed(1) + " [kg]";
+        sliders.k.previousElementSibling.querySelector('.units').innerText = Number(sliders.k.value).toFixed(1) + " [N/m]";
+        sliders.c.previousElementSibling.querySelector('.units').innerText = Number(sliders.c.value).toFixed(1) + " [N·s/m]";
+        sliders.F0.previousElementSibling.querySelector('.units').innerText = Number(sliders.F0.value).toFixed(1) + " [N]";
+        sliders.omega_d.previousElementSibling.querySelector('.units').innerText = Number(sliders.omega_d.value).toFixed(2) + " [rad/s]";
+    }
+
+    // Bind event listeners to update parameters in real-time
+    Object.keys(sliders).forEach(key => {
+        sliders[key].addEventListener('input', (e) => {
+            params[key] = parseFloat(e.target.value);
+            updateLabels();
+        });
+    });
+
+    document.getElementById('btnPause').addEventListener('click', () => {
+        isRunning = !isRunning;
+        if (isRunning) loop();
+        else cancelAnimationFrame(animationId);
+    });
+
+    document.getElementById('btnReset').addEventListener('click', () => {
+        state.x = 3.0;
+        state.v = 0.0;
+        state.t = 0.0;
+        history.t = [];
+        history.x = [];
+        history.v = [];
+        Plotly.purge('plotXT');
+        Plotly.purge('plotPhase');
+        initPlots();
+    });
+
+    // 3. Numerical Integration Engine (RK4)
+    // The differential equation: x'' = (F0*cos(omega*t) - c*x' - k*x) / m
+    function acceleration(x, v, t) {
+        return (params.F0 * Math.cos(params.omega_d * t) - params.c * v - params.k * x) / params.m;
+    }
+
+    function stepRK4(dt) {
+        let k1_x = state.v;
+        let k1_v = acceleration(state.x, state.v, state.t);
+
+        let k2_x = state.v + 0.5 * dt * k1_v;
+        let k2_v = acceleration(state.x + 0.5 * dt * k1_x, state.v + 0.5 * dt * k1_v, state.t + 0.5 * dt);
+
+        let k3_x = state.v + 0.5 * dt * k2_v;
+        let k3_v = acceleration(state.x + 0.5 * dt * k2_x, state.v + 0.5 * dt * k2_v, state.t + 0.5 * dt);
+
+        let k4_x = state.v + dt * k3_v;
+        let k4_v = acceleration(state.x + dt * k3_x, state.v + dt * k3_v, state.t + dt);
+
+        state.x += (dt / 6.0) * (k1_x + 2*k2_x + 2*k3_x + k4_x);
+        state.v += (dt / 6.0) * (k1_v + 2*k2_v + 2*k3_v + k4_v);
+        state.t += dt;
+    }
+
+    // 4. Canvas Visualization
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth - 32; // match card padding
+        canvas.height = 200;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function drawSystem() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        const originX = canvas.width / 2;
+        const originY = canvas.height / 2;
+        const pixelsPerMeter = 30; // Scale factor
+
+        // Draw equilibrium line
+        ctx.beginPath();
+        ctx.moveTo(0, originY);
+        ctx.lineTo(canvas.width, originY);
+        ctx.strokeStyle = '#e9ecef';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([5, 5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Calculate mass position
+        const massX = originX + state.x * pixelsPerMeter;
+        
+        // Draw Wall
+        ctx.fillStyle = '#495057';
+        ctx.fillRect(originX - 150, originY - 40, 20, 80);
+
+        // Draw Spring (Zig-zag pattern)
+        ctx.beginPath();
+        let springStartX = originX - 130;
+        let springEndX = massX - 25;
+        let coils = 15;
+        let coilWidth = (springEndX - springStartX) / coils;
+        
+        ctx.moveTo(springStartX, originY);
+        for(let i=0; i<coils; i++) {
+            ctx.lineTo(springStartX + i*coilWidth + coilWidth/2, originY + (i%2==0 ? 15 : -15));
+        }
+        ctx.lineTo(springEndX, originY);
+        ctx.strokeStyle = '#adb5bd';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        // Draw Mass
+        ctx.fillStyle = '#0d6efd';
+        ctx.fillRect(massX - 25, originY - 25, 50, 50);
+        
+        // Force vector if driving force exists
+        if (params.F0 > 0) {
+            let forceMag = params.F0 * Math.cos(params.omega_d * state.t);
+            ctx.beginPath();
+            ctx.moveTo(massX, originY - 35);
+            ctx.lineTo(massX + forceMag * 3, originY - 35);
+            ctx.strokeStyle = '#dc3545';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            // Draw arrow head
+            ctx.beginPath();
+            ctx.moveTo(massX + forceMag * 3, originY - 35);
+            let dir = forceMag > 0 ? -1 : 1;
+            ctx.lineTo(massX + forceMag * 3 + dir*8, originY - 40);
+            ctx.lineTo(massX + forceMag * 3 + dir*8, originY - 30);
+            ctx.fillStyle = '#dc3545';
+            ctx.fill();
+        }
+
+        // Draw coordinate system (x=0)
+        ctx.fillStyle = 'rgba(0,0,0,0.5)';
+        ctx.fillRect(originX, originY + 40, 2, 20);
+        ctx.font = '14px Arial';
+        ctx.fillText('x=0', originX - 12, originY + 75);
+    }
+
+    // 5. Plotly Integration
+    let plotConfig = { responsive: true, displayModeBar: false };
+    
+    function initPlots() {
+        let layoutXT = {
+            title: { text: 'מיקום כתלות בזמן - x(t)', font: {size: 14} },
+            xaxis: { title: 'Time (s)' },
+            yaxis: { title: 'Position x (m)', range: [-10, 10] },
+            margin: { l: 50, r: 20, t: 30, b: 40 },
+            plot_bgcolor: '#f8f9fa'
+        };
+        Plotly.newPlot('plotXT', [{ x: [], y: [], mode: 'lines', line: {color: '#0d6efd', width: 2} }], layoutXT, plotConfig);
+
+        let layoutPhase = {
+            title: { text: 'מרחב פאזה - v(x)', font: {size: 14} },
+            xaxis: { title: 'Position x (m)', range: [-10, 10] },
+            yaxis: { title: 'Velocity v (m/s)', range: [-20, 20] },
+            margin: { l: 50, r: 20, t: 30, b: 40 },
+            plot_bgcolor: '#f8f9fa'
+        };
+        Plotly.newPlot('plotPhase', [{ x: [], y: [], mode: 'lines', line: {color: '#198754', width: 2} }], layoutPhase, plotConfig);
+    }
+    initPlots();
+
+    function updatePlots() {
+        history.t.push(state.t);
+        history.x.push(state.x);
+        history.v.push(state.v);
+
+        // Keep buffer bounded to prevent memory leaks and maintain performance
+        if (history.t.length > maxDataPoints) {
+            history.t.shift();
+            history.x.shift();
+            history.v.shift();
+        }
+
+        // Update Position vs Time
+        Plotly.update('plotXT', {
+            x: [history.t],
+            y: [history.x]
+        }, {
+            xaxis: { range: [Math.max(0, state.t - 5), Math.max(5, state.t)] } // Sliding window of 5 seconds
+        });
+
+        // Update Phase Space
+        Plotly.update('plotPhase', {
+            x: [history.x],
+            y: [history.v]
+        });
+    }
+
+    // 6. Main Simulation Loop
+    let frameCounter = 0;
+    function loop() {
+        if (!isRunning) return;
+
+        // Perform numerical integration
+        stepRK4(timeStep);
+
+        // Update visual canvas every frame
+        drawSystem();
+
+        // Throttle Plotly updates to save CPU (update every 4 frames)
+        if (frameCounter % 4 === 0) {
+            updatePlots();
+        }
+
+        frameCounter++;
+        animationId = requestAnimationFrame(loop);
+    }
+
+    // Start simulation
+    updateLabels();
+    loop();
+
+</script>
+</body>
+</html>
