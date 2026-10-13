@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מאגר סימולציות בפיזיקה | PhysicsEdu</title>
+    
+    <!-- Bootstrap 5 RTL for professional styling -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css">
+    
+    <!-- MathJax for rendering theoretical equations in descriptions -->
+    <script>
+        window.MathJax = {
+            tex: { inlineMath: [['$', '$'], ['\\(', '\\)']], displayMath: [['$$', '$$'], ['\\[', '\\]']] }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        body { background-color: #f4f6f9; font-family: system-ui, -apple-system, sans-serif; }
+        .course-header { border-bottom: 3px solid #0d6efd; padding-bottom: 0.5rem; margin-top: 2rem; margin-bottom: 1.5rem; }
+        .sim-card { transition: transform 0.2s, box-shadow 0.2s; border: none; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .sim-card:hover { transform: translateY(-3px); box-shadow: 0 6px 12px rgba(0,0,0,0.1); border-color: #0d6efd; }
+        .card-title { color: #0d6efd; font-weight: 600; }
+        a { text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="container py-5">
+    <header class="text-center mb-5">
+        <h1 class="display-4 fw-bold text-dark">מאגר סימולציות ממוחשבות בפיזיקה</h1>
+        <p class="lead text-muted">מודולים אינטראקטיביים לחקר מודלים מתמטיים ופיזיקליים</p>
+    </header>
+
+    <!-- קורס: מכניקה אנליטית וקלאסית -->
+    <h2 class="h3 course-header text-dark">מכניקה ומכניקה אנליטית</h2>
+    <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+            <!-- שים לב לקישור: הוא מצביע לתיקייה שבתוכה יישב קובץ הסימולציה -->
+            <a href="analytical-mechanics/harmonic-oscillator/" class="card sim-card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">מתנד הרמוני מרוסן ומאולץ</h5>
+                    <p class="card-text text-secondary text-dark mt-2" style="font-size: 0.9em;">
+                        חקירת משוואת התנועה $ m\ddot{x} + c\dot{x} + kx = F_0\cos(\omega t) $ במרחב הפאזה ופתרון נומרי בעזרת Runge-Kutta 4. תופעות תהודה ופעימות.
+                    </p>
+                </div>
+            </a>
+        </div>
+        
+        <div class="col-md-6 col-lg-4">
+            <a href="#" class="card sim-card h-100" style="opacity: 0.6; cursor: not-allowed;">
+                <div class="card-body">
+                    <h5 class="card-title text-secondary">דינמיקה של גוף קשיח (בקרוב)</h5>
+                    <p class="card-text text-secondary mt-2" style="font-size: 0.9em;">
+                        ויזואליזציה תלת-ממדית (Three.js) של משוואות אוילר, פרצסיה ונוטציה של סביבון סימטרי תוך שימוש בזוויות אוילר $(\phi, \theta, \psi)$.
+                    </p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- קורס: גלים ומכניקת זורמים -->
+    <h2 class="h3 course-header text-dark">גלים ומכניקת זורמים</h2>
+    <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+            <a href="#" class="card sim-card h-100" style="opacity: 0.6; cursor: not-allowed;">
+                <div class="card-body">
+                    <h5 class="card-title text-secondary">התפשטות גל במיתר מתוח (בקרוב)</h5>
+                    <p class="card-text text-secondary mt-2" style="font-size: 0.9em;">
+                        פתרון משוואת הגלים הדו-ממדית $\frac{\partial^2 y}{\partial t^2} = v^2 \frac{\partial^2 y}{\partial x^2}$ תחת תנאי שפה של קצוות קבועים וחופשיים.
+                    </p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- קורס: מכניקת הקוונטים 1 -->
+    <h2 class="h3 course-header text-dark">מכניקת הקוונטים 1</h2>
+    <div class="row g-4">
+        <div class="col-md-6 col-lg-4">
+            <a href="#" class="card sim-card h-100" style="opacity: 0.6; cursor: not-allowed;">
+                <div class="card-body">
+                    <h5 class="card-title text-secondary">פיזור חבילת גלים חופשית (בקרוב)</h5>
+                    <p class="card-text text-secondary mt-2" style="font-size: 0.9em;">
+                        אבולוציה בזמן של חבילת גלים גאוסיינית ע"פ משוואת שרדינגר התלויה בזמן. הרחבת אי-הוודאות המרחבית $ \Delta x(t) $.
+                    </p>
+                </div>
+            </a>
+        </div>
+    </div>
+
+</div>
+
+</body>
+</html>
