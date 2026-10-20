@@ -51,7 +51,7 @@
     <div class="card">
       <div class="card-head">
         <h2>המסלול</h2>
-        <p class="card-note">הטבעת המסומנת היא האזור שבו <bdi class="num">E ≥ V′(r)</bdi>. הנקודות הקטנות מסמנות את נקודות ההחזרה שהמסלול עבר בהן.</p>
+        <p class="card-note">הטבעת המסומנת היא האזור שבו <bdi class="num">E ≥ V′(r)</bdi>. הקטע הכחול הוא הדרך שהחלקיק עשה זה עתה, והנקודות הקטנות הן נקודות ההחזרה שעבר בהן.</p>
       </div>
       <div class="plot-wrap">
         <canvas id="orbit" aria-label="המסלול במישור, עם המרכז ועם הטבעת שבין נקודות ההחזרה"></canvas>
@@ -96,6 +96,7 @@
     <div class="field">
       <span id="speed-label">מהירות הצגה</span>
       <div class="segmented" role="radiogroup" aria-labelledby="speed-label">
+        <label><input type="radio" name="speed" id="sp-025" value="0.25"><span>¼×</span></label>
         <label><input type="radio" name="speed" id="sp-05" value="0.5"><span>½×</span></label>
         <label><input type="radio" name="speed" id="sp-1" value="1" checked><span>1×</span></label>
         <label><input type="radio" name="speed" id="sp-2" value="2"><span>2×</span></label>
