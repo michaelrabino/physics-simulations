@@ -10,8 +10,9 @@
   // ---------- Model ----------
 
   const PRESETS = C.PRESETS;
-  // Simulated time units per second at 1×. Chosen so one Kepler orbit at the start settings takes ~7 s.
-  const RATE = { kepler: 2, hooke: 0.8, inv4: 0.9, yukawa: 1.7, gr: 2 };
+  // Playback pace: at 1× one lap around the center takes LAP_SECONDS of real time, whatever the
+  // potential, E and l. Inside a lap the motion keeps its physical timing (fast near r₁, slow near r₂).
+  const LAP_SECONDS = 15;
   const PARAM_LABEL = { a: "טווח יוקאווה a", eps: "עוצמת התיקון ε" };
 
   const state = {
@@ -154,8 +155,30 @@
       event: null,
       Rv,
       lastR: [s.r0, s.r0],
+      lap: lapTime(Rv),
     };
     updatePlay();
+  }
+
+  /**
+   * Simulated time of one "lap" for the current settings:
+   *   bounded orbit  → time to sweep 360° on average, T_r · π / Δθ
+   *   circular orbit → 2π r² / l
+   *   open orbit or fall → time to cross half the view at the starting speed
+   */
+  function lapTime(Rv) {
+    const s = cfg();
+    const i = state.info;
+    if (i && i.possible && s.l > 1e-6) {
+      if (i.swing && i.swing.dTheta > 0) return (i.swing.radialPeriod * Math.PI) / i.swing.dTheta;
+      if (state.unstable) return (2 * Math.PI * s.r0 * s.r0) / s.l;
+      if (i.circular) {
+        const r = 0.5 * (i.r1 + i.r2);
+        return (2 * Math.PI * r * r) / s.l;
+      }
+    }
+    const v0 = Math.sqrt(Math.max(1e-6, 2 * (s.E - vpot(s.r0))));
+    return (Math.PI * Rv) / v0;
   }
 
   let lastFrame = 0;
@@ -178,7 +201,7 @@
     lastFrame = now;
     const run = state.run;
     const s = cfg();
-    const simDt = RATE[state.preset] * state.speed * dtReal;
+    const simDt = (run.lap / LAP_SECONDS) * state.speed * dtReal;
     const minStep = run.Rv / 500;
     const res = C.advance(pre(), prm(), s.l, run.st, simDt, {
       rCenter: Math.max(0.02, run.Rv * 0.004),
