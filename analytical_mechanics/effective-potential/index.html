@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>מעבדת הפוטנציאל האפקטיבי</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="סימולציה אינטראקטיבית של בעיית הכוח המרכזי: הפוטנציאל האפקטיבי ונקודות ההחזרה לצד המסלול עצמו.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Hebrew:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page" dir="rtl" lang="he">
+
+  <header class="masthead">
+    <a class="back" href="../../">→ כל הסימולציות</a>
+    <p class="eyebrow"><span dir="ltr">V′(r) = V(r) + l² / 2μr²</span></p>
+    <h1>מעבדת הפוטנציאל האפקטיבי</h1>
+    <p class="lede">חלקיק בכוח מרכזי שומר על התנע הזוויתי, ולכן התנועה הרדיאלית שלו היא בעיה חד־ממדית בפוטנציאל אפקטיבי. גוררים את קו האנרגיה על הגרף של <bdi class="num">V′(r)</bdi> ורואים לצידו את המסלול שנובע ממנו.</p>
+  </header>
+
+  <nav class="modes" role="tablist" aria-label="הפוטנציאל">
+    <button type="button" role="tab" id="tab-kepler" aria-selected="true" aria-controls="stage">קפלר <bdi class="num">−1/r</bdi></button>
+    <button type="button" role="tab" id="tab-hooke" aria-selected="false" aria-controls="stage">מתנד איזוטרופי</button>
+    <button type="button" role="tab" id="tab-inv4" aria-selected="false" aria-controls="stage">כוח <bdi class="num">1/r⁴</bdi></button>
+    <button type="button" role="tab" id="tab-yukawa" aria-selected="false" aria-controls="stage">יוקאווה</button>
+    <button type="button" role="tab" id="tab-gr" aria-selected="false" aria-controls="stage">תיקון יחסותי</button>
+  </nav>
+
+  <section class="stage" id="stage">
+    <div class="card">
+      <div class="card-head">
+        <h2>הפוטנציאל האפקטיבי</h2>
+        <p class="card-note" id="veff-note">גררו את הגרף למעלה ולמטה כדי לשנות את האנרגיה, ואת הנקודה כדי לבחור מאיפה לצאת.</p>
+      </div>
+      <div class="plot-wrap">
+        <canvas id="veff" aria-label="גרף הפוטנציאל האפקטיבי כפונקציה של r, עם קו האנרגיה ונקודות ההחזרה"></canvas>
+        <div class="tip" id="tip-veff" hidden></div>
+      </div>
+      <div class="legend" aria-hidden="true">
+        <span><i class="key key-veff"></i>V′(r)</span>
+        <span><i class="key key-v"></i>V(r)</span>
+        <span><i class="key key-cent"></i><bdi class="num">l²/2r²</bdi></span>
+        <span><i class="key key-e"></i>האנרגיה E</span>
+        <span><i class="key key-ok"></i>אזור מותר</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2>המסלול</h2>
+        <p class="card-note">הטבעת המסומנת היא האזור שבו <bdi class="num">E ≥ V′(r)</bdi>. הנקודות הקטנות מסמנות את נקודות ההחזרה שהמסלול עבר בהן.</p>
+      </div>
+      <div class="plot-wrap">
+        <canvas id="orbit" aria-label="המסלול במישור, עם המרכז ועם הטבעת שבין נקודות ההחזרה"></canvas>
+        <div class="orbit-clock" dir="ltr"><span>t =</span> <bdi class="num" id="clock">0.0</bdi></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="console">
+    <div class="actions">
+      <button type="button" class="btn primary" id="play">שחרר</button>
+      <button type="button" class="btn" id="reset">אפס</button>
+      <button type="button" class="btn" id="circular">מסלול מעגלי</button>
+    </div>
+
+    <label class="slider" for="l">
+      <span>תנע זוויתי l</span>
+      <output id="l-out" for="l"></output>
+      <input type="range" id="l" min="0" max="2.5" step="0.01" value="1">
+    </label>
+
+    <label class="slider" for="e">
+      <span>אנרגיה E</span>
+      <output id="e-out" for="e"></output>
+      <input type="range" id="e" min="-1" max="1" step="0.001" value="-0.3">
+    </label>
+
+    <label class="slider" for="param" id="param-wrap" hidden>
+      <span id="param-label">פרמטר</span>
+      <output id="param-out" for="param"></output>
+      <input type="range" id="param" min="0" max="1" step="0.01" value="0.5">
+    </label>
+
+    <div class="field">
+      <span id="dir-label">כיוון התחלתי</span>
+      <div class="segmented" role="radiogroup" aria-labelledby="dir-label">
+        <label><input type="radio" name="dir" id="dir-in" value="in" checked><span>פנימה</span></label>
+        <label><input type="radio" name="dir" id="dir-out" value="out"><span>החוצה</span></label>
+      </div>
+    </div>
+
+    <div class="field">
+      <span id="speed-label">מהירות הצגה</span>
+      <div class="segmented" role="radiogroup" aria-labelledby="speed-label">
+        <label><input type="radio" name="speed" id="sp-05" value="0.5"><span>½×</span></label>
+        <label><input type="radio" name="speed" id="sp-1" value="1" checked><span>1×</span></label>
+        <label><input type="radio" name="speed" id="sp-2" value="2"><span>2×</span></label>
+      </div>
+    </div>
+  </section>
+
+  <section class="readout" aria-live="polite">
+    <div class="verdict">
+      <span class="badge" id="kind"></span>
+      <p id="kind-text"></p>
+    </div>
+    <dl class="facts">
+      <div><dt>נקודת החזרה פנימית <bdi class="num">r₁</bdi></dt><dd id="f-r1"></dd></div>
+      <div><dt>נקודת החזרה חיצונית <bdi class="num">r₂</bdi></dt><dd id="f-r2"></dd></div>
+      <div><dt>הזווית בין <bdi class="num">r₁</bdi> ל־<bdi class="num">r₂</bdi></dt><dd id="f-dtheta"></dd></div>
+      <div><dt>המחזור הרדיאלי</dt><dd id="f-period"></dd></div>
+      <div><dt>המרחק עכשיו</dt><dd id="f-r"></dd></div>
+    </dl>
+  </section>
+
+  <section class="explain">
+    <h2>מה רואים כאן</h2>
+    <div class="explain-grid">
+      <div>
+        <h3>הבעיה החד־ממדית</h3>
+        <p>בכוח מרכזי התנע הזוויתי <bdi class="num">l = μr²θ̇</bdi> נשמר, והאנרגיה היא</p>
+        <p class="formula" dir="ltr">E = ½ μ ṙ² + V(r) + l²/(2μr²)</p>
+        <p>האיבר האחרון פועל כמו פוטנציאל דוחה, "המחסום הצנטריפוגלי". הסכום שלו עם V הוא הפוטנציאל האפקטיבי. החלקיק יכול להיות רק במקומות שבהם <bdi class="num">E ≥ V′(r)</bdi>, ונקודות החיתוך הן נקודות ההחזרה. הקו האנכי בגרף, מ־V′ עד E, הוא האנרגיה הקינטית הרדיאלית באותו רגע.</p>
+      </div>
+      <div>
+        <h3>סוגי המסלולים</h3>
+        <p>שתי נקודות החזרה נותנות מסלול חסום בטבעת שבין <bdi class="num">r₁</bdi> ל־<bdi class="num">r₂</bdi>. כשהאנרגיה בדיוק במינימום של V′ הטבעת מתכווצת למעגל. כשאין נקודת החזרה חיצונית החלקיק בורח, וכשאין פנימית הוא נופל למרכז.</p>
+        <p>בכוח <bdi class="num">1/r⁴</bdi> יש ל־V′ מקסימום במקום מינימום: מסלול מעגלי קיים, אבל הוא לא יציב, ואנרגיה שמתחת למקסימום נותנת נפילה או בריחה לפי הצד שממנו יוצאים.</p>
+      </div>
+      <div>
+        <h3>האם המסלול נסגר</h3>
+        <p>במסלול חסום, הזווית Δθ בין שתי נקודות החזרה קובעת אם המסלול נסגר. בקפלר היא בדיוק 180° ובמתנד האיזוטרופי 90°, ולכן שני המסלולים נסגרים. זה תוכן משפט ברטרנד (סעיף 3.6).</p>
+        <p>ביוקאווה ובתיקון היחסותי Δθ גדולה מ־180°, ונקודת הפריהליון מתקדמת בכל הקפה. התיקון היחסותי הוא המנגנון של קדימת הפריהליון של כוכב חמה. הנושא מופיע בסעיפים 3.3–3.6 בספר של גולדסטיין. היחידות כאן הן כאלה שבהן <bdi class="num">μ = 1</bdi> ועוצמת הכוח היא 1.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>קוד פתוח. הפיזיקה נמצאת בקובץ <code>central.js</code> ונבדקת ב־<code>tests/</code>.</p>
+  </footer>
+</div>
+
+<script src="central.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
