@@ -1,0 +1,10 @@
+{
+  "name": "effective-potential",
+  "version": "1.0.0",
+  "description": "Interactive central-force lab: effective potential, turning points and the orbit (Hebrew UI)",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/central.test.js",
+    "start": "python3 -m http.server 8000"
+  }
+}
