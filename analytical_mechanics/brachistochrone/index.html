@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>מרוץ הברכיסטוכרון</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="סימולציה אינטראקטיבית של בעיית הברכיסטוכרון: חמישה מסלולים מ־A ל־B, ואיזה כדור מגיע ראשון.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Hebrew:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page" dir="rtl" lang="he">
+
+  <header class="masthead">
+    <a class="back" href="../../">→ כל הסימולציות</a>
+    <p class="eyebrow"><span dir="ltr">Problema novum · Acta Eruditorum, 1696</span></p>
+    <h1>מרוץ הברכיסטוכרון</h1>
+    <p class="lede">כמה כדורים יוצאים מנקודה A ומחליקים בלי חיכוך עד נקודה B, כל אחד במסלול אחר. הקו הישר הוא הקצר ביותר. האם הוא גם המהיר ביותר?</p>
+  </header>
+
+  <nav class="modes" role="tablist" aria-label="מצב הסימולציה">
+    <button type="button" role="tab" id="tab-race" aria-selected="true" aria-controls="stage">מרוץ בין מסלולים</button>
+    <button type="button" role="tab" id="tab-taut" aria-selected="false" aria-controls="stage">טאוטוכרון</button>
+  </nav>
+
+  <section class="stage" id="stage">
+    <div class="board">
+      <canvas id="track" aria-label="המסלולים והכדורים. אפשר לגרור את נקודה B."></canvas>
+      <div class="clock" aria-live="off"><span class="clock-label">זמן</span> <bdi id="clock" class="num">0.000</bdi> <span class="unit">ש'</span></div>
+      <p class="hint" id="hint" hidden></p>
+    </div>
+
+    <aside class="controls" aria-label="הגדרות">
+      <div class="actions">
+        <button type="button" class="btn primary" id="go">שחרר את הכדורים</button>
+        <button type="button" class="btn" id="reset">אפס</button>
+      </div>
+
+      <!-- Race controls -->
+      <div id="race-controls" class="group-stack">
+        <fieldset class="group">
+          <legend>מסלולים</legend>
+          <ul class="curve-list" id="curve-list"></ul>
+          <div class="draw-row">
+            <button type="button" class="btn small" id="draw">צייר מסלול משלך</button>
+            <button type="button" class="btn small ghost" id="clear-draw" hidden>מחק</button>
+          </div>
+        </fieldset>
+
+        <fieldset class="group">
+          <legend>נקודת הסיום B</legend>
+          <label class="slider" for="x">
+            <span>מרחק אופקי</span>
+            <output id="x-out" for="x"><span class="num">3.0</span> מ'</output>
+            <input type="range" id="x" min="0.5" max="6" step="0.1" value="3">
+          </label>
+          <label class="slider" for="y">
+            <span>עומק</span>
+            <output id="y-out" for="y"><span class="num">1.5</span> מ'</output>
+            <input type="range" id="y" min="0.3" max="3" step="0.1" value="1.5">
+          </label>
+          <p class="note">אפשר גם לגרור את B על הלוח.</p>
+        </fieldset>
+      </div>
+
+      <!-- Tautochrone controls -->
+      <div id="taut-controls" class="group-stack" hidden>
+        <fieldset class="group">
+          <legend>צורת המסילה</legend>
+          <div class="segmented" role="radiogroup" aria-label="צורת המסילה">
+            <label><input type="radio" name="taut-track" id="tt-cycloid" value="cycloid" checked><span>ציקלואידה</span></label>
+            <label><input type="radio" name="taut-track" id="tt-circle" value="circle"><span>קשת מעגל</span></label>
+          </div>
+          <label class="slider" for="r">
+            <span>רדיוס המעגל המתגלגל R</span>
+            <output id="r-out" for="r"><span class="num">0.60</span> מ'</output>
+            <input type="range" id="r" min="0.2" max="1.5" step="0.05" value="0.6">
+          </label>
+          <p class="note">ארבעה כדורים משתחררים מגבהים שונים. בציקלואידה כולם מגיעים לתחתית באותו רגע.</p>
+        </fieldset>
+      </div>
+
+      <fieldset class="group">
+        <legend>תנאים</legend>
+        <label class="field" for="g">
+          <span>כבידה</span>
+          <select id="g">
+            <option value="9.81" selected>כדור הארץ · 9.81 מ'/ש²</option>
+            <option value="1.62">הירח · 1.62 מ'/ש²</option>
+            <option value="3.71">מאדים · 3.71 מ'/ש²</option>
+            <option value="24.79">צדק · 24.79 מ'/ש²</option>
+          </select>
+        </label>
+        <div class="field">
+          <span id="speed-label">מהירות הצגה</span>
+          <div class="segmented" role="radiogroup" aria-labelledby="speed-label">
+            <label><input type="radio" name="speed" id="sp-1" value="1" checked><span>1×</span></label>
+            <label><input type="radio" name="speed" id="sp-05" value="0.5"><span>½×</span></label>
+            <label><input type="radio" name="speed" id="sp-025" value="0.25"><span>¼×</span></label>
+          </div>
+        </div>
+        <label class="check" for="strobe">
+          <input type="checkbox" id="strobe" checked>
+          <span>סימן כל 0.05 ש' לאורך הדרך</span>
+        </label>
+      </fieldset>
+    </aside>
+  </section>
+
+  <section class="readout">
+    <div class="results">
+      <h2 id="results-title">תוצאות</h2>
+      <div class="table-wrap">
+        <table id="results">
+          <thead id="results-head"></thead>
+          <tbody id="results-body"></tbody>
+        </table>
+      </div>
+      <p class="verdict" id="verdict"></p>
+    </div>
+    <div class="speed">
+      <h2>מהירות לאורך הזמן</h2>
+      <canvas id="chart" aria-label="גרף המהירות של כל כדור כפונקציה של הזמן"></canvas>
+    </div>
+  </section>
+
+  <section class="explain">
+    <h2>מה רואים כאן</h2>
+    <div class="explain-grid">
+      <div>
+        <h3>הבעיה</h3>
+        <p>ב־1696 פרסם יוהאן ברנולי אתגר: מהו המסלול שבו גוף שמחליק בכבידה בלבד מגיע מנקודה לנקודה בזמן הקצר ביותר? פתרו אותו ניוטון, לייבניץ, ל'הופיטל ויעקב ברנולי. התשובה היא קשת של ציקלואידה, העקומה שנקודה על שפת גלגל מסתובב משרטטת.</p>
+        <p>הכדור במסלול התלול מאבד גובה מהר בהתחלה, ולכן צובר מהירות מוקדם וממשיך מהר רוב הדרך. הקו הישר קצר יותר, אבל הכדור עליו מאיץ לאט. כשנקודה B רחוקה ונמוכה מספיק, המסלול המהיר ביותר אפילו יורד מתחת ל־B ועולה אליה בסוף.</p>
+      </div>
+      <div>
+        <h3>החשבון</h3>
+        <p>מהירות הכדור בעומק y מתחת לנקודת ההתחלה היא <bdi class="num">v = √(2gy)</bdi>, ולכן זמן הנסיעה הוא הפונקציונל</p>
+        <p class="formula" dir="ltr">T = ∫ √(1 + y′²) / √(2gy) dx</p>
+        <p>משוואת אוילר–לגראנז' עבור הפונקציונל הזה נותנת את הציקלואידה:</p>
+        <p class="formula" dir="ltr">x = R(θ − sin θ),  y = R(1 − cos θ)</p>
+        <p>וזמן ההגעה הוא <bdi class="num">T = θ<sub>B</sub>·√(R/g)</bdi>. הנושא מופיע בסעיף 2.2 בספר Classical Mechanics של גולדסטיין.</p>
+      </div>
+      <div>
+        <h3>הטאוטוכרון</h3>
+        <p>לציקלואידה יש תכונה נוספת: כדור שמשתחרר ממנוחה מכל נקודה עליה מגיע לתחתית אחרי אותו זמן בדיוק, <bdi class="num">π·√(R/g)</bdi>. הויגנס גילה זאת ב־1659 וניסה לבנות בעזרתה שעון מטוטלת מדויק. במסלול מעגלי, כמו מטוטלת רגילה, הזמן תלוי בגובה השחרור.</p>
+        <h3>איך החישוב נעשה</h3>
+        <p>כל מסלול מחולק לאלף וחמש מאות קטעים ישרים. על כל קטע התאוצה קבועה, ולכן הזמן לחצות אותו מחושב בדיוק. התוצאה עבור הקו הישר והציקלואידה מתאימה לנוסחאות הסגורות עד רבבית שנייה.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>קוד פתוח. הפיזיקה נמצאת בקובץ <code>physics.js</code> ונבדקת ב־<code>tests/</code>.</p>
+  </footer>
+</div>
+
+<script src="physics.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
