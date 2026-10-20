@@ -13,6 +13,9 @@
   // Playback pace: at 1× one lap around the center takes LAP_SECONDS of real time, whatever the
   // potential, E and l. Inside a lap the motion keeps its physical timing (fast near r₁, slow near r₂).
   const LAP_SECONDS = 15;
+  // In the default "screen" pace the particle moves this many CSS pixels per second at 1×,
+  // everywhere on the orbit and in every potential.
+  const SCREEN_PX_PER_S = 60;
   const PARAM_LABEL = { a: "טווח יוקאווה a", eps: "עוצמת התיקון ε" };
 
   const state = {
@@ -22,6 +25,7 @@
     view: null,
     info: null,
     speed: 1,
+    pace: "screen", // "screen": constant speed on screen; "physical": real timing, one lap ≈ LAP_SECONDS
     run: null,
     running: false,
     drag: null,
@@ -201,7 +205,15 @@
     lastFrame = now;
     const run = state.run;
     const s = cfg();
-    const simDt = (run.lap / LAP_SECONDS) * state.speed * dtReal;
+    const physDt = (run.lap / LAP_SECONDS) * state.speed * dtReal;
+    let simDt = physDt;
+    if (state.pace === "screen") {
+      // Choose the simulated time step so the particle covers a fixed distance on screen.
+      const [W, H] = size.o;
+      const pxPerUnit = (Math.min(W, H) / 2 - 14) / run.Rv;
+      const v = Math.hypot(run.st.vx, run.st.vy);
+      simDt = Math.min(physDt * 6, (SCREEN_PX_PER_S * state.speed * dtReal) / Math.max(1e-9, v * pxPerUnit));
+    }
     const minStep = run.Rv / 500;
     const res = C.advance(pre(), prm(), s.l, run.st, simDt, {
       rCenter: Math.max(0.02, run.Rv * 0.004),
@@ -881,6 +893,15 @@
   }
   for (const el of document.querySelectorAll("input[name='speed']")) {
     el.addEventListener("change", (e) => (state.speed = parseFloat(e.target.value)));
+  }
+  for (const el of document.querySelectorAll("input[name='pace']")) {
+    el.addEventListener("change", (e) => {
+      state.pace = e.target.value;
+      $("pace-note").textContent =
+        state.pace === "screen"
+          ? "החלקיק נע במהירות קבועה על המסך. השעון מראה את הזמן הפיזיקלי."
+          : "זמן פיזיקלי: ב־1× הקפה נמשכת כ־15 שניות, והחלקיק מהיר ליד r₁.";
+    });
   }
 
   const keys = Object.keys(PRESETS);
