@@ -10,7 +10,8 @@
   // ---------- Model ----------
 
   const PRESETS = C.PRESETS;
-  const RATE = { kepler: 6, hooke: 1.2, inv4: 2.5, yukawa: 5, gr: 6 }; // simulated time units per second at 1×
+  // Simulated time units per second at 1×. Chosen so one Kepler orbit at the start settings takes ~7 s.
+  const RATE = { kepler: 2, hooke: 0.8, inv4: 0.9, yukawa: 1.7, gr: 2 };
   const PARAM_LABEL = { a: "טווח יוקאווה a", eps: "עוצמת התיקון ε" };
 
   const state = {
@@ -517,17 +518,34 @@
       ctx.restore();
     }
 
-    // trail
+    // trail: the full path faint, the most recent stretch bold so the eye can follow the particle
     const tr = run.trail;
     if (tr.length > 1) {
+      const TAIL = 90;
+      const split = Math.max(0, tr.length - TAIL);
       ctx.save();
-      ctx.strokeStyle = col.ink;
-      ctx.globalAlpha = 0.85;
-      ctx.lineWidth = 1.6;
       ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.strokeStyle = col.ink;
+      ctx.globalAlpha = 0.38;
+      ctx.lineWidth = 1.4;
       ctx.beginPath();
       ctx.moveTo(X(tr[0][0]), Y(tr[0][1]));
-      for (let i = 1; i < tr.length; i++) ctx.lineTo(X(tr[i][0]), Y(tr[i][1]));
+      for (let i = 1; i <= split; i++) ctx.lineTo(X(tr[i][0]), Y(tr[i][1]));
+      ctx.stroke();
+      // recent stretch, fading in toward the particle
+      ctx.strokeStyle = col.accent;
+      ctx.lineWidth = 2.6;
+      for (let i = Math.max(1, split); i < tr.length; i++) {
+        ctx.globalAlpha = 0.25 + 0.75 * ((i - split) / Math.max(1, tr.length - split));
+        ctx.beginPath();
+        ctx.moveTo(X(tr[i - 1][0]), Y(tr[i - 1][1]));
+        ctx.lineTo(X(tr[i][0]), Y(tr[i][1]));
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.beginPath();
+      ctx.moveTo(X(tr[tr.length - 1][0]), Y(tr[tr.length - 1][1]));
       ctx.lineTo(X(run.st.x), Y(run.st.y));
       ctx.stroke();
       ctx.restore();
