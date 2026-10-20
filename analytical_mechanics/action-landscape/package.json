@@ -1,0 +1,10 @@
+{
+  "name": "action-landscape",
+  "version": "1.0.0",
+  "description": "Interactive Hamilton's principle simulation: drag a path and watch the action (Hebrew UI)",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/action.test.js",
+    "start": "python3 -m http.server 8000"
+  }
+}
