@@ -1,0 +1,10 @@
+{
+  "name": "brachistochrone",
+  "version": "1.0.0",
+  "description": "Interactive brachistochrone and tautochrone simulation (Hebrew UI)",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests/physics.test.js",
+    "start": "python3 -m http.server 8000"
+  }
+}
