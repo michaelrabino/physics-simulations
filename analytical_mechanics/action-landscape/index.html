@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>נוף הפעולה</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="סימולציה אינטראקטיבית של עקרון המילטון: גוררים מסלול ורואים איך הפעולה משתנה, ומתי המסלול האמיתי הוא מינימום ומתי נקודת אוכף.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Frank+Ruhl+Libre:wght@500;700;900&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Hebrew:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="page" dir="rtl" lang="he">
+
+  <header class="masthead">
+    <a class="back" href="../../">→ כל הסימולציות</a>
+    <p class="eyebrow"><span dir="ltr">δS = 0 · W. R. Hamilton, 1834</span></p>
+    <h1>נוף הפעולה</h1>
+    <p class="lede">מכל המסלולים שמתחילים ונגמרים באותן נקודות ובאותם זמנים, הטבע בוחר את זה שבו הפעולה <bdi class="num">S = ∫ L dt</bdi> סטציונרית. גררו את המסלול וראו מה קורה ל־S. האם המסלול האמיתי הוא תמיד המינימום?</p>
+  </header>
+
+  <nav class="modes" role="tablist" aria-label="המערכת">
+    <button type="button" role="tab" id="tab-osc" aria-selected="true" aria-controls="stage">מתנד הרמוני</button>
+    <button type="button" role="tab" id="tab-fall" aria-selected="false" aria-controls="stage">זריקה אנכית</button>
+  </nav>
+
+  <section class="stage" id="stage">
+    <div class="board">
+      <div class="readout" aria-live="polite">
+        <div class="stat">
+          <span class="stat-label">הפעולה של המסלול שלך</span>
+          <span class="stat-value"><bdi class="num" id="s-trial">0.000</bdi> <span class="unit">J·s</span></span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">המסלול האמיתי</span>
+          <span class="stat-value"><bdi class="num" id="s-true">0.000</bdi> <span class="unit">J·s</span></span>
+        </div>
+        <div class="stat">
+          <span class="stat-label">ההפרש ΔS</span>
+          <span class="stat-value"><bdi class="num" id="s-delta">0.000</bdi> <span class="unit">J·s</span></span>
+        </div>
+        <div class="status" id="status"></div>
+      </div>
+      <div class="plot-wrap">
+        <canvas id="path" aria-label="גרף המקום כפונקציה של הזמן: המסלול האמיתי בקו מקווקו, והמסלול שלך עם נקודות לגרירה."></canvas>
+        <div class="tip" id="tip-path" hidden></div>
+      </div>
+      <div class="legend" aria-hidden="true">
+        <span><i class="key key-trial"></i>המסלול שלך</span>
+        <span><i class="key key-true"></i>המסלול האמיתי</span>
+        <span><i class="key key-handle"></i>נקודה לגרירה</span>
+      </div>
+      <p class="hint" id="hint"></p>
+    </div>
+
+    <aside class="controls" aria-label="הגדרות">
+      <div class="actions">
+        <button type="button" class="btn primary" id="descend">תן לפעולה לרדת</button>
+        <div class="actions-row">
+          <button type="button" class="btn" id="to-true">למסלול האמיתי</button>
+          <button type="button" class="btn" id="shake">הפרעה אקראית</button>
+        </div>
+      </div>
+
+      <fieldset class="group">
+        <legend>משך התנועה T</legend>
+        <label class="slider" for="t">
+          <span id="t-caption">משך</span>
+          <output id="t-out" for="t"></output>
+        </label>
+        <div class="range-ltr" dir="ltr">
+          <input type="range" id="t" min="0.11" max="1.69" step="0.02" value="0.37" aria-labelledby="t-caption">
+          <div class="ticks" id="ticks" aria-hidden="true"></div>
+        </div>
+        <p class="note" id="t-note"></p>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>נקודות הקצה (קבועות)</legend>
+        <label class="slider" for="qa">
+          <span>מקום בהתחלה <bdi class="num">q(0)</bdi></span>
+          <output id="qa-out" for="qa"></output>
+          <input type="range" id="qa" min="-1.5" max="1.5" step="0.1" value="1">
+        </label>
+        <label class="slider" for="qb">
+          <span>מקום בסוף <bdi class="num">q(T)</bdi></span>
+          <output id="qb-out" for="qb"></output>
+          <input type="range" id="qb" min="-1.5" max="1.5" step="0.1" value="0.4">
+        </label>
+        <p class="note" id="sys-note"></p>
+      </fieldset>
+    </aside>
+  </section>
+
+  <section class="lower">
+    <div class="panel">
+      <h2>הנוף במישור של שני המצבים הראשונים</h2>
+      <p class="caption">כל נקודה היא מסלול: המסלול האמיתי ועוד <bdi class="num">a₁</bdi> פעמים המצב הראשון ועוד <bdi class="num">a₂</bdi> פעמים המצב השני. הצבע הוא ΔS. לחצו או גררו כדי לבחור מסלול.</p>
+      <div class="land-wrap">
+        <canvas id="land" aria-label="מפת צבע של ΔS כפונקציה של שתי המשרעות הראשונות"></canvas>
+        <div class="tip" id="tip-land" hidden></div>
+      </div>
+      <div class="ramp" aria-hidden="true">
+        <span>מתחת לאמיתי</span>
+        <div class="ramp-bar" id="ramp-bar"></div>
+        <span>מעל לאמיתי</span>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>המצבים</h2>
+      <p class="caption">הסטייה של המסלול שלך מהאמיתי, מפורקת לגלי סינוס שמתאפסים בשני הקצוות. כל עמודה היא משרעת של מצב אחד. מצב בכחול מוריד את הפעולה, מצב באדום מעלה אותה. גררו עמודה כדי לשנות אותה.</p>
+      <div class="modes-wrap">
+        <canvas id="modes" aria-label="המשרעות של שבעת מצבי הסינוס ותרומת כל אחד ל־ΔS"></canvas>
+        <div class="tip" id="tip-modes" hidden></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="explain">
+    <h2>מה רואים כאן</h2>
+    <div class="explain-grid">
+      <div>
+        <h3>עקרון המילטון</h3>
+        <p>הלגראנז'יאן הוא <bdi class="num">L = T − V</bdi>, האנרגיה הקינטית פחות הפוטנציאלית. עקרון המילטון אומר שמבין כל המסלולים עם אותן נקודות קצה, המסלול שהגוף עושה בפועל הוא זה שבו הפעולה <bdi class="num">S = ∫ L dt</bdi> סטציונרית: שינוי קטן במסלול משנה את S רק בסדר שני.</p>
+        <p>כאן כל מסלול נבנה מהמסלול האמיתי ועוד גלי סינוס שמתאפסים בקצוות. בגלל ששתי המערכות ריבועיות, הפעולה יוצאת בדיוק</p>
+        <p class="formula" dir="ltr">S = S_true + Σ cₙ aₙ²<br>cₙ = (mT/4)·[(nπ/T)² − ω²]</p>
+        <p>אין איבר לינארי ב־<bdi class="num">aₙ</bdi>, ולכן המסלול האמיתי הוא נקודה סטציונרית. זה תוכן סעיפים 2.1–2.3 בספר של גולדסטיין.</p>
+      </div>
+      <div>
+        <h3>מינימום או אוכף</h3>
+        <p>בזריקה אנכית <bdi class="num">ω = 0</bdi>, כל המקדמים <bdi class="num">cₙ</bdi> חיוביים, והמסלול האמיתי הוא מינימום אמיתי. בנוף רואים קערה.</p>
+        <p>במתנד המצב הראשון מוריד את הפעולה ברגע ש־T עובר חצי מחזור, כי אז <bdi class="num">π/T &lt; ω</bdi>. הנוף הופך לאוכף, והמסלול האמיתי כבר אינו מינימום. כל חצי מחזור נוסף מוסיף כיוון יורד אחד. מספר הכיוונים היורדים נקרא אינדקס מורס.</p>
+        <p>בדיוק בחצי מחזור כל המסלולים של המתנד שיוצאים מ־q חוזרים ל־<bdi class="num">−q</bdi>. זו נקודה צמודה (במונחים של יעקובי), ואין בה מסלול אמיתי בין שתי נקודות כלליות. לידה המסלול האמיתי מתנפח. לכן נכון יותר לקרוא לעיקרון "עקרון הפעולה הסטציונרית" ולא "עקרון הפעולה המינימלית".</p>
+      </div>
+      <div>
+        <h3>מה לנסות</h3>
+        <p>במתנד, עם T קצר מחצי מחזור, לחצו על "תן לפעולה לרדת": כל המצבים דועכים והמסלול חוזר לאמיתי.</p>
+        <p>הזיזו את T מעבר לחצי מחזור ונסו שוב. הפעם המצב הראשון גדל בלי סוף, והפעולה יורדת מתחת לזו של המסלול האמיתי.</p>
+        <p>עברו לזריקה אנכית: לא משנה כמה ארוך T, הנוף נשאר קערה.</p>
+        <h3>איך החישוב נעשה</h3>
+        <p>שבע הנקודות לגרירה והמשרעות של שבעת המצבים קשורות בהתמרת סינוס בדידה, ולכן כל גרירה קובעת מסלול חלק אחד. ΔS מחושב מהנוסחה, וזו נבדקה מול אינטגרציה נומרית של <bdi class="num">∫ L dt</bdi>.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <p>קוד פתוח. הפיזיקה נמצאת בקובץ <code>action.js</code> ונבדקת ב־<code>tests/</code>.</p>
+  </footer>
+</div>
+
+<script src="action.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
