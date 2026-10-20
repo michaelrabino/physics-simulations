@@ -101,7 +101,15 @@
         <label><input type="radio" name="speed" id="sp-1" value="1" checked><span>1×</span></label>
         <label><input type="radio" name="speed" id="sp-2" value="2"><span>2×</span></label>
       </div>
-      <span class="speed-note">ב־1× הקפה אחת נמשכת כ־15 שניות</span>
+    </div>
+
+    <div class="field">
+      <span id="pace-label">קצב התנועה</span>
+      <div class="segmented" role="radiogroup" aria-labelledby="pace-label">
+        <label><input type="radio" name="pace" id="pace-screen" value="screen" checked><span>קבוע על המסך</span></label>
+        <label><input type="radio" name="pace" id="pace-phys" value="physical"><span>זמן פיזיקלי</span></label>
+      </div>
+      <span class="speed-note" id="pace-note">החלקיק נע במהירות קבועה על המסך. השעון מראה את הזמן הפיזיקלי.</span>
     </div>
   </section>
 
