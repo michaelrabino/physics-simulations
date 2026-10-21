@@ -245,9 +245,12 @@
       let err = 0;
       for (let m = 0; m < 4; m++) err = Math.max(err, Math.abs(y5[m] - y4[m]) / scale);
       if (err <= tol || h < 1e-12) {
+        const prev = s;
         s = y5;
         t += h;
-        if (opts.onPoint) opts.onPoint(s[0], s[1]);
+        // onPoint(x, y, vx, vy, h, prev): end of the accepted step, its length and the
+        // state at its start, so callers can draw the step as a smooth curve.
+        if (opts.onPoint) opts.onPoint(s[0], s[1], s[2], s[3], h, prev);
         const r = Math.hypot(s[0], s[1]);
         if (r < rCenter) {
           event = "center";

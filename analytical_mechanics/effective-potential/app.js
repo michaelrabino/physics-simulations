@@ -160,6 +160,8 @@
       Rv,
       lastR: [s.r0, s.r0],
       lap: lapTime(Rv),
+      trailDrawn: 1,
+      apsDrawn: 0,
     };
     updatePlay();
   }
@@ -186,6 +188,7 @@
   }
 
   let lastFrame = 0;
+  let lastLive = 0;
   function play() {
     if (!state.info || !state.info.possible) return;
     if (state.run.event) resetRun();
@@ -218,20 +221,31 @@
     const res = C.advance(pre(), prm(), s.l, run.st, simDt, {
       rCenter: Math.max(0.02, run.Rv * 0.004),
       rEscape: run.Rv * 2.2,
-      onPoint: (x, y) => {
-        const last = run.trail[run.trail.length - 1];
-        if (Math.hypot(x - last[0], y - last[1]) > minStep) {
-          run.trail.push([x, y]);
-          if (run.trail.length > 24000) run.trail.splice(0, 4000);
+      onPoint: (x, y, vx, vy, h, p) => {
+        // A single integrator step can span many pixels near the center. Fill it in along the
+        // cubic Hermite curve through its end points (positions and velocities are known),
+        // so the drawn path follows the real orbit instead of a straight chord.
+        const n = Math.min(200, Math.max(1, Math.ceil(Math.hypot(x - p[0], y - p[1]) / minStep)));
+        for (let k = 1; k <= n; k++) {
+          const t = k / n;
+          const t2 = t * t;
+          const t3 = t2 * t;
+          const a0 = 2 * t3 - 3 * t2 + 1;
+          const b0 = (t3 - 2 * t2 + t) * h;
+          const a1 = -2 * t3 + 3 * t2;
+          const b1 = (t3 - t2) * h;
+          const px = a0 * p[0] + b0 * p[2] + a1 * x + b1 * vx;
+          const py = a0 * p[1] + b0 * p[3] + a1 * y + b1 * vy;
+          const last = run.trail[run.trail.length - 1];
+          if (k === n || Math.hypot(px - last[0], py - last[1]) > minStep) run.trail.push([px, py]);
+          // turning points: local extrema of r along the path
+          const r = Math.hypot(px, py);
+          const [r2, r1] = run.lastR;
+          if ((r1 - r2) * (r - r1) < 0 && Math.abs(r - r1) > 1e-12) {
+            run.apsides.push([px, py]);
+          }
+          run.lastR = [r1, r];
         }
-        // turning points: local extrema of r along the path
-        const r = Math.hypot(x, y);
-        const [r2, r1] = run.lastR;
-        if ((r1 - r2) * (r - r1) < 0 && Math.abs(r - r1) > 1e-12) {
-          run.apsides.push([x, y]);
-          if (run.apsides.length > 400) run.apsides.shift();
-        }
-        run.lastR = [r1, r];
       },
     });
     run.st = res.state;
@@ -241,8 +255,11 @@
       updatePlay();
       renderReadout();
     }
-    drawAll();
-    updateLive();
+    render();
+    if (now - lastLive > 100 || !state.running) {
+      updateLive();
+      lastLive = now;
+    }
     if (state.running) requestAnimationFrame(frame);
   }
 
@@ -260,17 +277,28 @@
   const ctxO = cvO.getContext("2d");
   const size = { v: [0, 0], o: [0, 0] };
 
-  function fit(cv, ctx, key) {
+  function makeLayer() {
+    const c = document.createElement("canvas");
+    return { c, ctx: c.getContext("2d") };
+  }
+  const layers = { v: makeLayer(), o: makeLayer(), trail: makeLayer() };
+
+  function fit(cv, ctx, key, extra) {
     const dpr = window.devicePixelRatio || 1;
     const r = cv.getBoundingClientRect();
     size[key] = [r.width, r.height];
     cv.width = Math.max(1, Math.round(r.width * dpr));
     cv.height = Math.max(1, Math.round(r.height * dpr));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    for (const L of extra) {
+      L.c.width = cv.width;
+      L.c.height = cv.height;
+      L.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
   }
   function resize() {
-    fit(cvV, ctxV, "v");
-    fit(cvO, ctxO, "o");
+    fit(cvV, ctxV, "v", [layers.v]);
+    fit(cvO, ctxO, "o", [layers.o, layers.trail]);
     drawAll();
   }
 
@@ -298,8 +326,8 @@
     return Math.hypot(state.run.st.x, state.run.st.y);
   }
 
-  function drawV() {
-    const ctx = ctxV;
+  /** Everything on the V′ plot except the moving particle (cached in a layer). */
+  function paintVStatic(ctx) {
     const [W, H] = size.v;
     if (!W || !state.view) return;
     const s = cfg();
@@ -413,6 +441,39 @@
     ctx.fillText(`E = ${fmt(s.E)}`, x1 - 4, yE - 5);
     ctx.restore();
 
+    // axes and titles
+    ctx.save();
+    ctx.strokeStyle = col.rule;
+    ctx.beginPath();
+    ctx.moveTo(x0 + 0.5, yTop);
+    ctx.lineTo(x0 + 0.5, yBot + 0.5);
+    ctx.lineTo(x1, yBot + 0.5);
+    ctx.stroke();
+    ctx.fillStyle = col.muted;
+    ctx.font = `12px ${col.mono}`;
+    ctx.direction = "ltr";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText("r", x0 + (x1 - x0) / 2, H - 2);
+    ctx.save();
+    ctx.translate(12, yTop + (yBot - yTop) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textBaseline = "middle";
+    ctx.direction = "rtl";
+    ctx.font = `12px ${col.body}`;
+    ctx.fillText("אנרגיה", 0, 0);
+    ctx.restore();
+    ctx.restore();
+  }
+
+  /** The particle on the energy line and its radial kinetic energy (drawn every frame). */
+  function paintVParticle(ctx) {
+    const [W, H] = size.v;
+    if (!W || !state.view) return;
+    const s = cfg();
+    const info = state.info;
+    const yE = vy(s.E);
+    const yBot = H - VP.b;
     // particle and its radial kinetic energy
     if (info && info.possible) {
       const r = currentR();
@@ -437,29 +498,6 @@
       }
     }
 
-    // axes and titles
-    ctx.save();
-    ctx.strokeStyle = col.rule;
-    ctx.beginPath();
-    ctx.moveTo(x0 + 0.5, yTop);
-    ctx.lineTo(x0 + 0.5, yBot + 0.5);
-    ctx.lineTo(x1, yBot + 0.5);
-    ctx.stroke();
-    ctx.fillStyle = col.muted;
-    ctx.font = `12px ${col.mono}`;
-    ctx.direction = "ltr";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "bottom";
-    ctx.fillText("r", x0 + (x1 - x0) / 2, H - 2);
-    ctx.save();
-    ctx.translate(12, yTop + (yBot - yTop) / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.textBaseline = "middle";
-    ctx.direction = "rtl";
-    ctx.font = `12px ${col.body}`;
-    ctx.fillText("אנרגיה", 0, 0);
-    ctx.restore();
-    ctx.restore();
   }
 
   function curve(ctx, fn, color, width, dash) {
@@ -489,22 +527,23 @@
 
   // ---------- Orbit plot ----------
 
-  function drawO() {
-    const ctx = ctxO;
+  function orbitGeom() {
     const [W, H] = size.o;
-    if (!W || !state.run) return;
-    ctx.clearRect(0, 0, W, H);
-    ctx.fillStyle = col.panel;
-    ctx.fillRect(0, 0, W, H);
-    const run = state.run;
-    const Rv = run.Rv;
+    const Rv = state.run.Rv;
     const cx = W / 2;
     const cy = H / 2;
     const sc = (Math.min(W, H) / 2 - 14) / Rv;
-    const X = (x) => cx + x * sc;
-    const Y = (y) => cy - y * sc;
+    return { W, H, cx, cy, sc, X: (x) => cx + x * sc, Y: (y) => cy - y * sc };
+  }
 
-    // grid: rings and axes
+  /** Grid, allowed annulus and center (cached in a layer). */
+  function paintOStatic(ctx) {
+    const { W, H, cx, cy, sc } = orbitGeom();
+    const Rv = state.run.Rv;
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = col.panel;
+    ctx.fillRect(0, 0, W, H);
+
     const step = niceTick(Rv, 4);
     ctx.save();
     ctx.strokeStyle = col.grid;
@@ -520,7 +559,6 @@
     ctx.moveTo(cx + 0.5, 0);
     ctx.lineTo(cx + 0.5, H);
     ctx.stroke();
-    // ring scale label
     ctx.fillStyle = col.muted;
     ctx.font = `11px ${col.mono}`;
     ctx.direction = "ltr";
@@ -529,7 +567,6 @@
     ctx.fillText(`r = ${trim(step)}`, cx + step * sc + 4, cy - 4);
     ctx.restore();
 
-    // allowed annulus
     const info = state.info;
     if (info && info.possible && !state.unstable) {
       ctx.save();
@@ -553,25 +590,70 @@
       ctx.restore();
     }
 
-    // trail: the full path faint, the most recent stretch bold so the eye can follow the particle
+    ctx.save();
+    ctx.fillStyle = col.muted;
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /**
+   * The path so far, kept in its own layer and extended a few segments per frame,
+   * so the cost of a frame does not grow with the length of the path.
+   */
+  function extendTrail(ctx, full) {
+    const run = state.run;
+    const { W, H, X, Y } = orbitGeom();
     const tr = run.trail;
+    if (full) {
+      ctx.clearRect(0, 0, W, H);
+      run.trailDrawn = 1;
+      run.apsDrawn = 0;
+    }
+    if (tr.length > run.trailDrawn) {
+      ctx.save();
+      ctx.strokeStyle = col.ink;
+      ctx.lineWidth = 1.4;
+      ctx.lineJoin = "round";
+      ctx.lineCap = "round";
+      ctx.beginPath();
+      const i0 = Math.max(0, run.trailDrawn - 1);
+      ctx.moveTo(X(tr[i0][0]), Y(tr[i0][1]));
+      for (let i = i0 + 1; i < tr.length; i++) ctx.lineTo(X(tr[i][0]), Y(tr[i][1]));
+      ctx.stroke();
+      ctx.restore();
+      run.trailDrawn = tr.length;
+    }
+    if (run.apsides.length > run.apsDrawn) {
+      ctx.save();
+      ctx.fillStyle = col.energy;
+      for (let i = run.apsDrawn; i < run.apsides.length; i++) {
+        const [x, y] = run.apsides[i];
+        ctx.beginPath();
+        ctx.arc(X(x), Y(y), 3.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.restore();
+      run.apsDrawn = run.apsides.length;
+    }
+  }
+
+  /** The recent stretch of the path (bold), the particle and its starting velocity. */
+  function paintODynamic(ctx) {
+    const run = state.run;
+    const { X, Y } = orbitGeom();
+    const tr = run.trail;
+    const info = state.info;
     if (tr.length > 1) {
       const TAIL = 90;
-      const split = Math.max(0, tr.length - TAIL);
+      const split = Math.max(1, tr.length - TAIL);
       ctx.save();
       ctx.lineJoin = "round";
       ctx.lineCap = "round";
-      ctx.strokeStyle = col.ink;
-      ctx.globalAlpha = 0.38;
-      ctx.lineWidth = 1.4;
-      ctx.beginPath();
-      ctx.moveTo(X(tr[0][0]), Y(tr[0][1]));
-      for (let i = 1; i <= split; i++) ctx.lineTo(X(tr[i][0]), Y(tr[i][1]));
-      ctx.stroke();
-      // recent stretch, fading in toward the particle
       ctx.strokeStyle = col.accent;
       ctx.lineWidth = 2.6;
-      for (let i = Math.max(1, split); i < tr.length; i++) {
+      for (let i = split; i < tr.length; i++) {
         ctx.globalAlpha = 0.25 + 0.75 * ((i - split) / Math.max(1, tr.length - split));
         ctx.beginPath();
         ctx.moveTo(X(tr[i - 1][0]), Y(tr[i - 1][1]));
@@ -585,38 +667,16 @@
       ctx.stroke();
       ctx.restore();
     }
-
-    // turning points passed so far
-    ctx.save();
-    ctx.fillStyle = col.energy;
-    for (const [x, y] of run.apsides) {
-      ctx.beginPath();
-      ctx.arc(X(x), Y(y), 3.2, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.restore();
-
-    // center of force
-    ctx.save();
-    ctx.fillStyle = col.muted;
-    ctx.beginPath();
-    ctx.arc(cx, cy, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-
-    // particle and (when paused at the start) its velocity
     const st = run.st;
     if (info && info.possible) {
       if (!state.running && st.t === 0) {
         const v = Math.hypot(st.vx, st.vy);
         if (v > 0) {
           const len = Math.min(70, 26 + v * 18);
-          const ux = st.vx / v;
-          const uy = st.vy / v;
           const ax = X(st.x);
           const ay = Y(st.y);
-          const bx = ax + ux * len;
-          const by = ay - uy * len;
+          const bx = ax + (st.vx / v) * len;
+          const by = ay - (st.vy / v) * len;
           ctx.save();
           ctx.strokeStyle = col.accent;
           ctx.fillStyle = col.accent;
@@ -647,9 +707,43 @@
     }
   }
 
+  // ---------- Layers and compositing ----------
+
+  const dirty = { v: true, o: true, trail: true };
+
+  /** Redraw everything (after a change of settings, size or theme). */
   function drawAll() {
-    drawV();
-    drawO();
+    dirty.v = dirty.o = dirty.trail = true;
+    render();
+  }
+
+  /** One frame: rebuild only the layers that changed, then composite. */
+  function render() {
+    if (!state.view || !state.run || !size.v[0] || !size.o[0]) return;
+    const dpr = window.devicePixelRatio || 1;
+    if (dirty.v) {
+      paintVStatic(layers.v.ctx);
+      dirty.v = false;
+    }
+    if (dirty.o) {
+      paintOStatic(layers.o.ctx);
+      dirty.o = false;
+    }
+    extendTrail(layers.trail.ctx, dirty.trail);
+    dirty.trail = false;
+
+    ctxV.setTransform(1, 0, 0, 1, 0, 0);
+    ctxV.drawImage(layers.v.c, 0, 0);
+    ctxV.setTransform(dpr, 0, 0, dpr, 0, 0);
+    paintVParticle(ctxV);
+
+    ctxO.setTransform(1, 0, 0, 1, 0, 0);
+    ctxO.drawImage(layers.o.c, 0, 0);
+    ctxO.globalAlpha = 0.38;
+    ctxO.drawImage(layers.trail.c, 0, 0);
+    ctxO.globalAlpha = 1;
+    ctxO.setTransform(dpr, 0, 0, dpr, 0, 0);
+    paintODynamic(ctxO);
   }
 
   // ---------- Readout ----------
