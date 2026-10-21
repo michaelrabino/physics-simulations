@@ -148,17 +148,43 @@
 
   // ---------- Running the orbit ----------
 
+  /** The path so far, stored flat in a growable typed array (no per-point objects to collect). */
+  class Trail {
+    constructor(x, y) {
+      this.buf = new Float64Array(4096);
+      this.length = 0;
+      this.push(x, y);
+    }
+    push(x, y) {
+      if (2 * this.length + 2 > this.buf.length) {
+        const nb = new Float64Array(this.buf.length * 2);
+        nb.set(this.buf);
+        this.buf = nb;
+      }
+      this.buf[2 * this.length] = x;
+      this.buf[2 * this.length + 1] = y;
+      this.length++;
+    }
+    x(i) {
+      return this.buf[2 * i];
+    }
+    y(i) {
+      return this.buf[2 * i + 1];
+    }
+  }
+
   function resetRun() {
     const s = cfg();
     state.running = false;
     const Rv = orbitRadius();
     state.run = {
       st: C.initState(s.r0, s.E, s.l, pre(), prm(), s.inward),
-      trail: [[s.r0, 0]],
+      trail: new Trail(s.r0, 0),
       apsides: [],
       event: null,
       Rv,
-      lastR: [s.r0, s.r0],
+      rPrev: s.r0,
+      rPrev2: s.r0,
       lap: lapTime(Rv),
       trailDrawn: 1,
       apsDrawn: 0,
@@ -236,15 +262,16 @@
           const b1 = (t3 - t2) * h;
           const px = a0 * p[0] + b0 * p[2] + a1 * x + b1 * vx;
           const py = a0 * p[1] + b0 * p[3] + a1 * y + b1 * vy;
-          const last = run.trail[run.trail.length - 1];
-          if (k === n || Math.hypot(px - last[0], py - last[1]) > minStep) run.trail.push([px, py]);
+          const tr = run.trail;
+          const li = tr.length - 1;
+          if (k === n || Math.hypot(px - tr.x(li), py - tr.y(li)) > minStep) tr.push(px, py);
           // turning points: local extrema of r along the path
           const r = Math.hypot(px, py);
-          const [r2, r1] = run.lastR;
-          if ((r1 - r2) * (r - r1) < 0 && Math.abs(r - r1) > 1e-12) {
-            run.apsides.push([px, py]);
-          }
-          run.lastR = [r1, r];
+          const r2 = run.rPrev2;
+          const r1 = run.rPrev;
+          if ((r1 - r2) * (r - r1) < 0 && Math.abs(r - r1) > 1e-12) run.apsides.push([px, py]);
+          run.rPrev2 = r1;
+          run.rPrev = r;
         }
       },
     });
@@ -619,8 +646,8 @@
       ctx.lineCap = "round";
       ctx.beginPath();
       const i0 = Math.max(0, run.trailDrawn - 1);
-      ctx.moveTo(X(tr[i0][0]), Y(tr[i0][1]));
-      for (let i = i0 + 1; i < tr.length; i++) ctx.lineTo(X(tr[i][0]), Y(tr[i][1]));
+      ctx.moveTo(X(tr.x(i0)), Y(tr.y(i0)));
+      for (let i = i0 + 1; i < tr.length; i++) ctx.lineTo(X(tr.x(i)), Y(tr.y(i)));
       ctx.stroke();
       ctx.restore();
       run.trailDrawn = tr.length;
@@ -656,13 +683,13 @@
       for (let i = split; i < tr.length; i++) {
         ctx.globalAlpha = 0.25 + 0.75 * ((i - split) / Math.max(1, tr.length - split));
         ctx.beginPath();
-        ctx.moveTo(X(tr[i - 1][0]), Y(tr[i - 1][1]));
-        ctx.lineTo(X(tr[i][0]), Y(tr[i][1]));
+        ctx.moveTo(X(tr.x(i - 1)), Y(tr.y(i - 1)));
+        ctx.lineTo(X(tr.x(i)), Y(tr.y(i)));
         ctx.stroke();
       }
       ctx.globalAlpha = 1;
       ctx.beginPath();
-      ctx.moveTo(X(tr[tr.length - 1][0]), Y(tr[tr.length - 1][1]));
+      ctx.moveTo(X(tr.x(tr.length - 1)), Y(tr.y(tr.length - 1)));
       ctx.lineTo(X(run.st.x), Y(run.st.y));
       ctx.stroke();
       ctx.restore();

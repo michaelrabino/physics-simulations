@@ -189,14 +189,17 @@
     return { x: r0, y: 0, vx: vr, vy: l / r0, t: 0, h: 1e-3 };
   }
 
-  function deriv(pre, p, l, s) {
+  /** Acceleration of the state s = [x, y, vx, vy], written into out (no allocation). */
+  function deriv(pre, p, l, s, out) {
     const r = Math.hypot(s[0], s[1]);
     const a = -pre.dV(r, l, p) / r;
-    return [s[2], s[3], a * s[0], a * s[1]];
+    out[0] = s[2];
+    out[1] = s[3];
+    out[2] = a * s[0];
+    out[3] = a * s[1];
   }
 
   const DP = {
-    c: [0, 1 / 5, 3 / 10, 4 / 5, 8 / 9, 1, 1],
     a: [
       [],
       [1 / 5],
@@ -210,47 +213,58 @@
     b4: [5179 / 57600, 0, 7571 / 16695, 393 / 640, -92097 / 339200, 187 / 2100, 1 / 40],
   };
 
+  // Scratch buffers reused by every step, so a long run creates no garbage here.
+  const K = Array.from({ length: 7 }, () => new Float64Array(4));
+  const SI = new Float64Array(4);
+  const Y5 = new Float64Array(4);
+  const Y4 = new Float64Array(4);
+  const PREV = new Float64Array(4);
+
   /**
    * Advance the state by `dt` of simulated time (many adaptive sub-steps).
    * Returns the new state and an event: "center" (r fell below rCenter),
-   * "escape" (r grew beyond rEscape) or null. `onPoint` is called with each
-   * accepted sub-step position (used to draw a smooth trail).
+   * "escape" (r grew beyond rEscape) or null. `onPoint` is called after each
+   * accepted sub-step (used to draw a smooth trail).
    */
   function advance(pre, p, l, st, dt, opts = {}) {
     const tol = opts.tol || 1e-9;
     const rCenter = opts.rCenter || 0.02;
     const rEscape = opts.rEscape || 1e3;
-    let s = [st.x, st.y, st.vx, st.vy];
+    const s = new Float64Array([st.x, st.y, st.vx, st.vy]);
     let t = 0;
     let h = Math.min(st.h || 1e-3, dt);
     let event = null;
     let guard = 0;
     while (t < dt - 1e-15 && guard++ < 200000) {
       if (t + h > dt) h = dt - t;
-      const k = [];
-      for (let i = 0; i < 7; i++) {
-        const si = s.slice();
-        for (let j = 0; j < i; j++) for (let m = 0; m < 4; m++) si[m] += h * DP.a[i][j] * k[j][m];
-        k.push(deriv(pre, p, l, si));
-      }
-      const y5 = s.slice();
-      const y4 = s.slice();
       for (let i = 0; i < 7; i++) {
         for (let m = 0; m < 4; m++) {
-          y5[m] += h * DP.b5[i] * k[i][m];
-          y4[m] += h * DP.b4[i] * k[i][m];
+          let v = s[m];
+          for (let j = 0; j < i; j++) v += h * DP.a[i][j] * K[j][m];
+          SI[m] = v;
         }
+        deriv(pre, p, l, SI, K[i]);
+      }
+      for (let m = 0; m < 4; m++) {
+        let v5 = s[m];
+        let v4 = s[m];
+        for (let i = 0; i < 7; i++) {
+          v5 += h * DP.b5[i] * K[i][m];
+          v4 += h * DP.b4[i] * K[i][m];
+        }
+        Y5[m] = v5;
+        Y4[m] = v4;
       }
       const scale = Math.max(1, Math.hypot(s[0], s[1]), Math.hypot(s[2], s[3]));
       let err = 0;
-      for (let m = 0; m < 4; m++) err = Math.max(err, Math.abs(y5[m] - y4[m]) / scale);
+      for (let m = 0; m < 4; m++) err = Math.max(err, Math.abs(Y5[m] - Y4[m]) / scale);
       if (err <= tol || h < 1e-12) {
-        const prev = s;
-        s = y5;
+        PREV.set(s);
+        s.set(Y5);
         t += h;
         // onPoint(x, y, vx, vy, h, prev): end of the accepted step, its length and the
         // state at its start, so callers can draw the step as a smooth curve.
-        if (opts.onPoint) opts.onPoint(s[0], s[1], s[2], s[3], h, prev);
+        if (opts.onPoint) opts.onPoint(s[0], s[1], s[2], s[3], h, PREV);
         const r = Math.hypot(s[0], s[1]);
         if (r < rCenter) {
           event = "center";
