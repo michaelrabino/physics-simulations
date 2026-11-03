@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>וקטורי המהירות והתאוצה</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Frank+Ruhl+Libre:wght@500;700&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: short header, scenario tabs, then stage + side panel (stacks below 900px) */
+:root{
+  --paper:#eef1f4; --panel:#fbfcfd; --stage:#fdfeff; --ink:#18232f; --muted:#5a6876; --line:#d3dae1;
+  --grid:#e3e8ee; --axis:#9aa7b4; --accent:#1b4a72; --accent-ink:#ffffff;
+  --c-a:#b5372a; --c-v:#2c5fae; --c-unit:#0f8475; --rod:#8b7356; --bead:#d9822b;
+  --f-display:'Frank Ruhl Libre','Times New Roman',serif;
+  --f-body:'Assistant','Segoe UI',Arial,sans-serif;
+  --f-math:'STIX Two Text','Cambria Math','Times New Roman',serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f141a; --panel:#161d25; --stage:#121920; --ink:#e3e9ef; --muted:#93a0ad; --line:#2a3542;
+    --grid:#1c2630; --axis:#4f5d6b; --accent:#8bb8e0; --accent-ink:#0f141a;
+    --c-a:#f06a56; --c-v:#79a3ee; --c-unit:#3cc6b2; --rod:#a48e70; --bead:#f0a04b;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f141a; --panel:#161d25; --stage:#121920; --ink:#e3e9ef; --muted:#93a0ad; --line:#2a3542;
+  --grid:#1c2630; --axis:#4f5d6b; --accent:#8bb8e0; --accent-ink:#0f141a;
+  --c-a:#f06a56; --c-v:#79a3ee; --c-unit:#3cc6b2; --rod:#a48e70; --bead:#f0a04b;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:1200px;margin:0 auto;padding-block:22px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:16px}
+.m{font-family:var(--f-math);font-style:normal;unicode-bidi:isolate;direction:ltr}
+header.top{display:flex;flex-direction:column;gap:6px}
+.eyebrow{color:var(--muted);font-size:.85rem;letter-spacing:.02em}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0;line-height:1.15;text-wrap:balance}
+.lede{margin:0;max-width:68ch;color:var(--muted)}
+.key{display:flex;gap:16px;flex-wrap:wrap;font-size:.95rem}
+.key span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:18px;height:3px;border-radius:2px;display:inline-block}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 14px;border-radius:999px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tab:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:18px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.stage{background:var(--stage);border:1px solid var(--line);border-radius:10px;aspect-ratio:4/3;max-height:76vh;width:100%;overflow:hidden;position:relative}
+@media (max-width:600px){.stage{aspect-ratio:1/1}}
+.stage canvas{display:block;width:100%;height:100%}
+.scale-tag{position:absolute;top:8px;inset-inline-start:10px;font-size:.78rem;color:var(--muted);background:var(--stage);padding:2px 6px;border-radius:4px}
+.timebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.play{font:inherit;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:7px 16px;cursor:pointer;min-width:84px}
+.timebar input[type=range]{flex:1 1 220px;min-width:0;accent-color:var(--accent)}
+.tval{font-family:var(--f-math);font-variant-numeric:tabular-nums;min-width:6.5em;direction:ltr;text-align:left}
+select{font:inherit;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.card h2{font-family:var(--f-display);font-size:1.3rem;margin:0;line-height:1.2}
+.card h3{font-size:.95rem;margin:0;color:var(--muted);font-weight:600}
+.src{font-size:.85rem;color:var(--muted);margin-top:-6px}
+.eq{font-family:var(--f-math);font-size:1.15rem;direction:ltr;text-align:right;overflow-x:auto}
+.note{margin:0;font-size:.95rem}
+/* unit-vector hat drawn by hand, centred over the letter (combining U+0302 lands beside θ in many fonts) */
+.hat{position:relative;display:inline-block;font-family:var(--f-math);font-style:normal;line-height:1}
+.hat::after{content:"";position:absolute;left:50%;top:.02em;width:.22em;height:.22em;
+  border-top:.075em solid currentColor;border-left:.075em solid currentColor;transform:translateX(-50%) rotate(45deg)}
+.hat.tall::after{top:-.2em}
+.prow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.prow label{font-weight:600}
+.prow .unit{color:var(--muted);font-weight:400;font-size:.85rem}
+.prow output{font-family:var(--f-math);font-variant-numeric:tabular-nums;direction:ltr}
+.prow input{grid-column:1 / -1;width:100%;accent-color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+td{padding:5px 0;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.n{font-family:var(--f-math);font-variant-numeric:tabular-nums;direction:ltr;text-align:left;white-space:nowrap}
+td .m{font-size:1.05rem}
+.dim{color:var(--muted);font-size:.82rem}
+</style>
+<style>body{margin:0}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>וקטורי המהירות והתאוצה</h1>
+    <p class="lede">בחרו תנועה והפעילו אותה. וקטורי היחידה הפולריים זזים עם הגוף ומשנים כיוון, בעוד המהירות משיקה תמיד למסלול.</p>
+    <div class="key">
+      <span><i class="sw" style="background:var(--c-v)"></i>מהירות <span class="m">v</span></span>
+      <span><i class="sw" style="background:var(--c-a)"></i>תאוצה <span class="m">a</span></span>
+      <span><i class="sw" style="background:var(--c-unit)"></i>וקטורי היחידה <span class="m"><span class="hat">r</span>, <span class="hat tall">θ</span></span></span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+
+  <main class="grid">
+    <section class="col">
+      <div class="stage" id="stageBox"><canvas id="stage" aria-label="מסלול הגוף עם וקטורי המהירות, התאוצה והיחידה"></canvas><span class="scale-tag">אורך החצים קבוע. הגדלים מופיעים בטבלה.</span></div>
+      <div class="timebar">
+        <button class="play" id="play" type="button">הפעל</button>
+        <input type="range" id="time" dir="ltr" min="0" max="1000" step="1" value="550" aria-label="זמן">
+        <span class="tval" id="tval"></span>
+        <label class="dim" for="speed">מהירות הצגה</label>
+        <select id="speed"><option value="0.5">×0.5</option><option value="1" selected>×1</option><option value="2">×2</option></select>
+      </div>
+    </section>
+
+    <aside class="col">
+      <div class="card">
+        <h2 id="scName"></h2>
+        <div class="src" id="scSrc"></div>
+        <div class="eq" id="scEq"></div>
+        <p class="note" id="scNote"></p>
+      </div>
+      <div class="card">
+        <h3>פרמטרים</h3>
+        <div id="params" class="col" style="gap:10px"></div>
+      </div>
+      <div class="card">
+        <h3>ערכים ברגע הנוכחי</h3>
+        <table><tbody>
+          <tr><td><span class="m">r</span></td><td class="n" id="o-r"></td></tr>
+          <tr><td><span class="m">θ</span> <span class="dim">(רד')</span></td><td class="n" id="o-th"></td></tr>
+          <tr><td><span class="m">|v|</span></td><td class="n" id="o-v"></td></tr>
+          <tr><td><span class="m">|a|</span></td><td class="n" id="o-a"></td></tr>
+          <tr><td>הזווית בין <span class="m">a</span> ל־<span class="m">v</span></td><td class="n" id="o-ang"></td></tr>
+        </tbody></table>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script>
+(function(){
+document.documentElement.lang='he';
+document.documentElement.dir='rtl';
+const $=s=>document.querySelector(s);
+const PI=Math.PI;
+
+const SCEN={
+  spiral:{
+    tab:'ספירלה', name:'ספירלה מתרחבת', src:'הדוגמה בסעיף 2.5',
+    params:[{k:'A',label:'A',min:0.2,max:2,step:0.1,def:1},{k:'B',label:'B',min:0.2,max:2,step:0.1,def:1}],
+    eq:'r(t) = At³ &nbsp;&nbsp;&nbsp; θ(t) = Bt⁵',
+    note:'הגוף מתרחק מהראשית ומסתובב נגד כיוון השעון. שימו לב ש־r̂ ו־θ̂ מסתובבים יחד עם הגוף, וש־v משיקה למסלול אבל לא מקבילה ל־θ̂, כי הגוף גם מתרחק מהראשית. בתנועה מעגלית, לעומת זאת, v מקבילה ל־θ̂.',
+    range:p=>[0,Math.pow(4*PI/p.B,0.2)],
+    kin:(t,p)=>({r:p.A*t**3,rd:3*p.A*t*t,rdd:6*p.A*t,th:p.B*t**5,thd:5*p.B*t**4,thdd:20*p.B*t**3})
+  },
+  bead:{
+    tab:'חרוז על מוט', name:'חרוז על מוט מסתובב', src:'תרגיל 1 בסעיף 9.1',
+    params:[{k:'u',label:'u',unit:"מ'/ש'",min:0.2,max:2,step:0.1,def:1},{k:'w',label:'ω',unit:"רד'/ש'",min:0.3,max:3,step:0.1,def:1}],
+    eq:'r(t) = ut &nbsp;&nbsp;&nbsp; θ(t) = ωt',
+    note:'המוט (בחום) מסתובב סביב ציר אנכי שעובר בקצהו, בראשית, נגד כיוון השעון. החרוז (בכתום) מושחל על המוט ומחליק לאורכו החוצה בקצב קבוע. הקו הכחול הוא המסלול שהחרוז משרטט במישור: ספירלה ארכימדית. למרות ששני הקצבים קבועים, לחרוז יש תאוצה, כי כיוון המהירות שלו משתנה כל הזמן.',
+    range:p=>[0,4*PI/p.w],
+    kin:(t,p)=>({r:p.u*t,rd:p.u,rdd:0,th:p.w*t,thd:p.w,thdd:0})
+  },
+  line:{
+    tab:'קו ישר', name:'תנועה שוות מהירות בקו ישר', src:'תרגיל 2 בסעיף 9.1',
+    params:[{k:'v0',label:'v₀',unit:"מ'/ש'",min:0.3,max:3,step:0.1,def:1},{k:'b',label:'b',unit:"מ'",min:0.3,max:3,step:0.1,def:1}],
+    eq:'x = v₀t &nbsp;&nbsp;&nbsp; y = b',
+    note:'הגוף נע במהירות קבועה בקו ישר, ולכן a = 0 בכל רגע. וקטורי היחידה r̂ ו־θ̂ בכל זאת מסתובבים, ומהר במיוחד כשהגוף עובר ליד הראשית.',
+    range:p=>[-4*p.b/p.v0,4*p.b/p.v0],
+    kin:(t,p)=>{const r=Math.hypot(p.b,p.v0*t),rd=p.v0*p.v0*t/r;
+      return {r,rd,rdd:p.v0**2*p.b**2/r**3,th:Math.atan2(p.b,p.v0*t),thd:-p.b*p.v0/(r*r),thdd:2*p.b*p.v0*rd/r**3};}
+  },
+  circle:{
+    tab:'תנועה מעגלית', name:'תנועה מעגלית', src:'פרק 3 ותרגיל 3 בסעיף 9.2',
+    params:[{k:'R',label:'R',unit:"מ'",min:0.5,max:2,step:0.1,def:1},{k:'w0',label:'ω₀',unit:"רד'/ש'",min:0,max:3,step:0.1,def:1},{k:'al',label:'α',unit:"רד'/ש²",min:-0.5,max:1.5,step:0.05,def:0}],
+    eq:'r = R &nbsp;&nbsp;&nbsp; θ(t) = ω₀t + ½αt²',
+    note:'כש־α = 0 התנועה קצובה: v משיקה למעגל ו־a פונה בדיוק למרכז, בכיוון −r̂. הגדילו את α וראו שהתאוצה נוטה קדימה, לכיוון התנועה.',
+    range:p=>{let T;
+      if(Math.abs(p.al)<1e-9) T=p.w0>0?4*PI/p.w0:10;
+      else{const d=p.w0*p.w0+8*PI*p.al; T=d>=0?(-p.w0+Math.sqrt(d))/p.al:2*p.w0/Math.abs(p.al);}
+      if(!(T>0))T=10; return [0,Math.min(T,15)];},
+    kin:(t,p)=>({r:p.R,rd:0,rdd:0,th:p.w0*t+0.5*p.al*t*t,thd:p.w0+p.al*t,thdd:p.al})
+  }
+};
+const ORDER=['spiral','bead','line','circle'];
+const P={}; for(const id of ORDER){P[id]={}; for(const d of SCEN[id].params)P[id][d.k]=d.def;}
+
+const S={scen:'spiral',u:0.55,playing:false,speed:1};
+let T0=0,T1=1,SAMP=[],B=null;
+
+function accel(k){return [k.rdd-k.r*k.thd*k.thd, 2*k.rd*k.thd+k.r*k.thdd];}
+
+function recompute(){
+  const sc=SCEN[S.scen],p=P[S.scen];
+  [T0,T1]=sc.range(p);
+  const N=600; SAMP=[]; let minx=0,maxx=0,miny=0,maxy=0;
+  for(let i=0;i<N;i++){
+    const t=T0+(T1-T0)*i/(N-1),k=sc.kin(t,p),x=k.r*Math.cos(k.th),y=k.r*Math.sin(k.th);
+    if(!Number.isFinite(x)||!Number.isFinite(y)){SAMP.push(null);continue;}
+    SAMP.push({x,y}); minx=Math.min(minx,x);maxx=Math.max(maxx,x);miny=Math.min(miny,y);maxy=Math.max(maxy,y);
+  }
+  B={minx,maxx,miny,maxy};
+  $('#scName').textContent=sc.name; $('#scSrc').textContent=sc.src;
+  $('#scEq').innerHTML=sc.eq;
+  $('#scNote').innerHTML=sc.note.replace(/([rθ])̂/g,(_,c)=>'<span class="hat'+(c==='θ'?' tall':'')+'">'+c+'</span>');
+}
+
+function buildTabs(){
+  const nav=$('#tabs'); nav.innerHTML='';
+  for(const id of ORDER){
+    const b=document.createElement('button');
+    b.type='button';b.className='tab';b.setAttribute('role','tab');b.id='tab-'+id;
+    b.setAttribute('aria-selected',String(id===S.scen)); b.textContent=SCEN[id].tab;
+    b.addEventListener('click',()=>{ if(location.hash!=='#'+id) location.hash=id; else setScen(id); });
+    nav.appendChild(b);
+  }
+}
+function fmtP(v){return (Math.round(v*100)/100).toString().replace('-','−');}
+function buildParams(){
+  const box=$('#params'); box.innerHTML='';
+  for(const d of SCEN[S.scen].params){
+    const id='p-'+S.scen+'-'+d.k, row=document.createElement('div'); row.className='prow';
+    row.innerHTML='<label for="'+id+'"><span class="m">'+d.label+'</span> <span class="unit">'+(d.unit||'')+'</span></label>'+
+      '<output class="m" for="'+id+'">'+fmtP(P[S.scen][d.k])+'</output>'+
+      '<input type="range" dir="ltr" id="'+id+'" min="'+d.min+'" max="'+d.max+'" step="'+d.step+'" value="'+P[S.scen][d.k]+'">';
+    const inp=row.querySelector('input'),out=row.querySelector('output');
+    inp.addEventListener('input',()=>{P[S.scen][d.k]=+inp.value;out.textContent=fmtP(+inp.value);recompute();render();});
+    box.appendChild(row);
+  }
+}
+function setScen(id){
+  if(!SCEN[id]) id='spiral';
+  S.scen=id; stop();
+  document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',String(b.id==='tab-'+id)));
+  buildParams(); recompute(); S.u=id==='line'?0.4:0.55; render();
+}
+
+const SUP={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+function fmt(x){
+  if(!Number.isFinite(x))return '—';
+  const a=Math.abs(x); if(a<5e-9)return '0';
+  let s;
+  if(a>=1e4||a<1e-2){const e=Math.floor(Math.log10(a));s=(x/10**e).toFixed(2)+'×10'+String(e).split('').map(c=>SUP[c]).join('');}
+  else s=String(Number(x.toPrecision(3)));
+  return s.replace(/^-/,'−');
+}
+
+let C={};
+function readColors(){
+  const cs=getComputedStyle(document.documentElement),g=n=>cs.getPropertyValue(n).trim();
+  C={stage:g('--stage'),ink:g('--ink'),muted:g('--muted'),grid:g('--grid'),axis:g('--axis'),line:g('--line'),
+     a:g('--c-a'),v:g('--c-v'),unit:g('--c-unit'),accent:g('--accent'),rod:g('--rod'),bead:g('--bead')};
+}
+
+const cv=$('#stage'),ctx=cv.getContext('2d'); let W=0,H=0;
+function resize(){
+  const r=cv.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  cv.width=Math.max(1,Math.round(r.width*d)); cv.height=Math.max(1,Math.round(r.height*d));
+  ctx.setTransform(d,0,0,d,0,0); W=r.width; H=r.height; render();
+}
+function arrow(x1,y1,x2,y2,col,w){
+  const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy); if(L<1.5)return;
+  const ux=dx/L,uy=dy/L,hs=Math.min(7+w*1.6,L*0.45),hw=hs*0.55;
+  ctx.save(); ctx.strokeStyle=col; ctx.fillStyle=col; ctx.lineWidth=w; ctx.lineCap='round';
+  ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2-ux*hs*0.8,y2-uy*hs*0.8); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x2,y2); ctx.lineTo(x2-ux*hs-uy*hw,y2-uy*hs+ux*hw); ctx.lineTo(x2-ux*hs+uy*hw,y2-uy*hs-ux*hw); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function label(txt,x,y,col,size,bold){
+  size=size||15;
+  const hat=txt.endsWith('̂'); if(hat) txt=txt.slice(0,-1);
+  ctx.save(); ctx.font=(bold?'600 ':'')+size+"px 'STIX Two Text','Cambria Math',serif";
+  ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.direction='ltr';
+  ctx.lineWidth=4; ctx.strokeStyle=C.stage; ctx.lineJoin='round'; ctx.strokeText(txt,x,y);
+  ctx.fillStyle=col; ctx.fillText(txt,x,y);
+  if(hat){
+    // draw the hat ourselves, centred on the letter's ink and just above its top
+    const mt=ctx.measureText(txt);
+    const cx=x+(mt.actualBoundingBoxRight-mt.actualBoundingBoxLeft)/2;
+    const top=y-mt.actualBoundingBoxAscent-size*0.12, hw=size*0.2, hh=size*0.16;
+    ctx.beginPath(); ctx.moveTo(cx-hw,top); ctx.lineTo(cx,top-hh); ctx.lineTo(cx+hw,top);
+    ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.lineWidth=4.5; ctx.strokeStyle=C.stage; ctx.stroke();
+    ctx.lineWidth=size*0.085; ctx.strokeStyle=col; ctx.stroke();
+  }
+  ctx.restore();
+}
+function nice(x){const e=10**Math.floor(Math.log10(x)),f=x/e;return (f<1.5?1:f<3.5?2:f<7.5?5:10)*e;}
+
+function render(){
+  if(!W||!B)return;
+  const t=T0+S.u*(T1-T0), k=SCEN[S.scen].kin(t,P[S.scen]);
+  drawStage(k); readout(k);
+  $('#time').value=Math.round(S.u*1000);
+  $('#tval').textContent='t = '+fmt(t);
+  $('#play').textContent=S.playing?'עצור':(S.u>=1?'מההתחלה':'הפעל');
+}
+
+function drawStage(k){
+  ctx.fillStyle=C.stage; ctx.fillRect(0,0,W,H);
+  const spanX=Math.max(B.maxx-B.minx,1e-6),spanY=Math.max(B.maxy-B.miny,1e-6);
+  const s=Math.min(W*0.72/spanX,H*0.72/spanY), mx=(B.minx+B.maxx)/2, my=(B.miny+B.maxy)/2;
+  const X=x=>W/2+(x-mx)*s, Y=y=>H/2-(y-my)*s, ox=X(0), oy=Y(0);
+  // polar grid
+  const pathR=Math.max(Math.hypot(B.maxx,B.maxy),Math.hypot(B.minx,B.miny),Math.hypot(B.maxx,B.miny),Math.hypot(B.minx,B.maxy),1e-6);
+  const step=nice(pathR/4);
+  const farR=Math.max(Math.hypot(ox,oy),Math.hypot(W-ox,oy),Math.hypot(ox,H-oy),Math.hypot(W-ox,H-oy))/s;
+  ctx.save(); ctx.strokeStyle=C.grid; ctx.lineWidth=1;
+  for(let i=1;i*step<=farR&&i<60;i++){ctx.beginPath();ctx.arc(ox,oy,i*step*s,0,2*PI);ctx.stroke();}
+  for(let a=0;a<12;a++){if(a%3===0)continue;const an=a*PI/6;ctx.beginPath();ctx.moveTo(ox,oy);ctx.lineTo(ox+farR*s*Math.cos(an),oy-farR*s*Math.sin(an));ctx.stroke();}
+  ctx.strokeStyle=C.axis; ctx.beginPath(); ctx.moveTo(0,oy); ctx.lineTo(W,oy); ctx.moveTo(ox,0); ctx.lineTo(ox,H); ctx.stroke();
+  ctx.restore();
+  label('x',W-12,oy-12,C.muted,15); label('y',ox+12,12,C.muted,15);
+  ctx.save(); ctx.font="12px 'STIX Two Text',serif"; ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.direction='ltr';
+  for(let i=1;i*step*s<W-ox-20&&i<60;i++){ if(i%2===0&&step*s<45)continue; ctx.fillText(fmt(i*step),ox+i*step*s,oy+14); }
+  ctx.restore();
+  // path: full (faint) and travelled (solid)
+  ctx.save(); ctx.lineJoin='round'; ctx.lineCap='round';
+  const trace=(n,col,w)=>{ctx.strokeStyle=col;ctx.lineWidth=w;ctx.beginPath();let pen=false;
+    for(let i=0;i<=n;i++){const q=SAMP[i];if(!q){pen=false;continue;}if(!pen){ctx.moveTo(X(q.x),Y(q.y));pen=true;}else ctx.lineTo(X(q.x),Y(q.y));}
+    return pen;};
+  trace(SAMP.length-1,C.line,2); ctx.stroke();
+  const px=X(k.r*Math.cos(k.th)), py=Y(k.r*Math.sin(k.th));
+  if(trace(Math.floor(S.u*(SAMP.length-1)),C.accent,2.4)&&Number.isFinite(px)) ctx.lineTo(px,py);
+  ctx.stroke(); ctx.restore();
+  if(!Number.isFinite(px)||!Number.isFinite(py))return;
+  const isBead=S.scen==='bead';
+  if(isBead){
+    // the rod: from the pivot at the origin, a bit beyond the farthest point of the path
+    const L=pathR*1.12*s, ca=Math.cos(k.th), sa=Math.sin(k.th);
+    ctx.save(); ctx.lineCap='round';
+    ctx.strokeStyle=C.rod; ctx.lineWidth=7;
+    ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(ox+L*ca,oy-L*sa); ctx.stroke();
+    // pivot
+    ctx.beginPath(); ctx.arc(ox,oy,8,0,2*PI); ctx.fillStyle=C.stage; ctx.fill(); ctx.lineWidth=3; ctx.stroke();
+    // rotation arrow (counter-clockwise)
+    const R=30, a1=k.th+0.35, a2=k.th+1.35;
+    ctx.strokeStyle=C.ink; ctx.lineWidth=1.6;
+    ctx.beginPath(); ctx.arc(ox,oy,R,-a1,-a2,true); ctx.stroke();
+    const ex=ox+R*Math.cos(a2), ey=oy-R*Math.sin(a2), tx=-Math.sin(a2), ty=-Math.cos(a2);
+    ctx.fillStyle=C.ink; ctx.beginPath(); ctx.moveTo(ex+tx*8,ey+ty*8);
+    ctx.lineTo(ex-ty*4,ey+tx*4); ctx.lineTo(ex+ty*4,ey-tx*4); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    label('ω',ox+(R+14)*Math.cos(a2+0.25),oy-(R+14)*Math.sin(a2+0.25),C.ink,16,true);
+    label('מוט',ox+L*ca+18*ca,oy-L*sa-18*sa,C.rod,14,true);
+  } else {
+  // position vector
+  ctx.save(); ctx.strokeStyle=C.muted; ctx.lineWidth=1.2; ctx.setLineDash([4,4]); ctx.beginPath(); ctx.moveTo(ox,oy); ctx.lineTo(px,py); ctx.stroke(); ctx.restore();
+  const Lr=Math.hypot(px-ox,py-oy);
+  if(Lr>40){const nx=-(py-oy)/Lr,ny=(px-ox)/Lr; label('r',(ox+px)/2+nx*12,(oy+py)/2+ny*12,C.muted,15,true);}
+  ctx.beginPath(); ctx.arc(ox,oy,3,0,2*PI); ctx.fillStyle=C.muted; ctx.fill();
+  }
+
+  const c=Math.cos(k.th),sn=Math.sin(k.th), rh=[c,sn], th=[-sn,c];
+  const size=Math.min(W,H);
+  const dir=(ar,at)=>{const x=ar*rh[0]+at*th[0], y=ar*rh[1]+at*th[1], L=Math.hypot(x,y); return L>0?[x/L,-y/L]:null;};
+  const draw=(d,len,col,w,txt)=>{const x2=px+d[0]*len,y2=py+d[1]*len; arrow(px,py,x2,y2,col,w); label(txt,x2+d[0]*14,y2+d[1]*14,col,16,true);};
+  // unit vectors
+  const U=size*0.1;
+  draw([rh[0],-rh[1]],U,C.unit,2,'r̂');
+  draw([th[0],-th[1]],U,C.unit,2,'θ̂');
+  // velocity and acceleration (fixed length, direction only)
+  const vr=k.rd, vt=k.r*k.thd, vm=Math.hypot(vr,vt);
+  const [ar,at]=accel(k), am=Math.hypot(ar,at);
+  const scale=Math.max(Math.abs(k.rdd),Math.abs(k.r*k.thd*k.thd),Math.abs(2*k.rd*k.thd),Math.abs(k.r*k.thdd),1e-300);
+  if(vm>1e-9) draw(dir(vr,vt),size*0.2,C.v,2.8,'v');
+  if(am>1e-6*scale && am>1e-12) draw(dir(ar,at),size*0.2,C.a,2.8,'a');
+  else label('a = 0',px+20,py+22,C.a,15,true);
+  // body
+  if(isBead){
+    // bead threaded on the rod: an oval along the rod with the rod showing through its hole
+    ctx.save(); ctx.translate(px,py); ctx.rotate(-k.th);
+    ctx.beginPath(); ctx.ellipse(0,0,11,8,0,0,2*PI); ctx.fillStyle=C.bead; ctx.fill();
+    ctx.lineWidth=1.5; ctx.strokeStyle=C.ink; ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(-11,0); ctx.lineTo(11,0); ctx.lineWidth=2; ctx.strokeStyle=C.rod; ctx.stroke();
+    ctx.restore();
+    label('חרוז',px+Math.sin(k.th)*26,py+Math.cos(k.th)*26,C.bead,14,true);
+  } else {
+    ctx.beginPath(); ctx.arc(px,py,5.5,0,2*PI); ctx.fillStyle=C.ink; ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle=C.stage; ctx.stroke();
+  }
+}
+
+function readout(k){
+  const set=(id,v)=>{$('#o-'+id).textContent=v;};
+  const vr=k.rd,vt=k.r*k.thd,vm=Math.hypot(vr,vt);
+  const [ar,at]=accel(k), am=Math.hypot(ar,at);
+  const scale=Math.max(Math.abs(k.rdd),Math.abs(k.r*k.thd*k.thd),Math.abs(2*k.rd*k.thd),Math.abs(k.r*k.thdd),1e-300);
+  const aOK=am>1e-6*scale;
+  set('r',fmt(k.r)); set('th',fmt(k.th)); set('v',fmt(vm)); set('a',aOK?fmt(am):'0');
+  if(vm>1e-9&&aOK){const cs=(vr*ar+vt*at)/(vm*am); set('ang',(Math.acos(Math.max(-1,Math.min(1,cs)))*180/PI).toFixed(1)+'°');}
+  else set('ang','—');
+}
+
+let last=0,raf=0;
+function stop(){S.playing=false;cancelAnimationFrame(raf);}
+function tick(ts){
+  if(!S.playing)return;
+  const dt=last?Math.min(0.05,(ts-last)/1000):0; last=ts;
+  S.u+=dt*S.speed/12; if(S.u>=1){S.u=1;S.playing=false;}
+  render(); if(S.playing)raf=requestAnimationFrame(tick);
+}
+$('#play').addEventListener('click',()=>{
+  if(S.playing){stop();render();return;}
+  if(S.u>=1)S.u=0; S.playing=true; last=0; render(); raf=requestAnimationFrame(tick);
+});
+$('#time').addEventListener('input',e=>{stop();S.u=+e.target.value/1000;render();});
+$('#speed').addEventListener('change',e=>{S.speed=+e.target.value;});
+
+readColors();
+const mq=matchMedia('(prefers-color-scheme: dark)'), onTheme=()=>{readColors();render();};
+mq.addEventListener?mq.addEventListener('change',onTheme):mq.addListener(onTheme);
+new MutationObserver(onTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+new ResizeObserver(()=>resize()).observe($('#stageBox'));
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>render());
+
+buildTabs();
+const fromHash=()=>{const h=location.hash.slice(1);setScen(SCEN[h]?h:'spiral');};
+window.addEventListener('hashchange',fromHash);
+fromHash(); resize();
+})();
+</script>
+</body>
+</html>
