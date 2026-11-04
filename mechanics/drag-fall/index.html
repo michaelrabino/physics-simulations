@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>נפילה עם גרר</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Frank+Ruhl+Libre:wght@500;700&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: short header, scenario tabs, then (lanes + v(t) graph, time bar) beside a side panel; stacks below 900px */
+:root{
+  --paper:#eef1f4; --panel:#fbfcfd; --stage:#fdfeff; --ink:#18232f; --muted:#5a6876; --line:#d3dae1;
+  --grid:#e3e8ee; --axis:#9aa7b4; --accent:#1b4a72; --accent-ink:#ffffff;
+  --c-free:#6f7e8e; --c-lin:#2c5fae; --c-quad:#c56f14; --c-drag:#0f8475; --c-mg:#18232f; --c-vel:#7845a6;
+  --f-display:'Frank Ruhl Libre','Times New Roman',serif;
+  --f-body:'Assistant','Segoe UI',Arial,sans-serif;
+  --f-math:'STIX Two Text','Cambria Math','Times New Roman',serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f141a; --panel:#161d25; --stage:#121920; --ink:#e3e9ef; --muted:#93a0ad; --line:#2a3542;
+    --grid:#1c2630; --axis:#4f5d6b; --accent:#8bb8e0; --accent-ink:#0f141a;
+    --c-free:#9aa8b6; --c-lin:#79a3ee; --c-quad:#efa04e; --c-drag:#3cc6b2; --c-mg:#e3e9ef; --c-vel:#b98ce6;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f141a; --panel:#161d25; --stage:#121920; --ink:#e3e9ef; --muted:#93a0ad; --line:#2a3542;
+  --grid:#1c2630; --axis:#4f5d6b; --accent:#8bb8e0; --accent-ink:#0f141a;
+  --c-free:#9aa8b6; --c-lin:#79a3ee; --c-quad:#efa04e; --c-drag:#3cc6b2; --c-mg:#e3e9ef; --c-vel:#b98ce6;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding-block:22px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:16px}
+.m{font-family:var(--f-math);font-style:normal;unicode-bidi:isolate;direction:ltr}
+header.top{display:flex;flex-direction:column;gap:6px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0;line-height:1.15;text-wrap:balance}
+.lede{margin:0;max-width:70ch;color:var(--muted)}
+.key{display:flex;gap:16px;flex-wrap:wrap;font-size:.95rem}
+.key span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:18px;height:3px;border-radius:2px;display:inline-block;flex:none}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 14px;border-radius:999px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tab:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.viz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:12px}
+@media (max-width:700px){.viz{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--stage);border:1px solid var(--line);border-radius:10px;padding:8px 10px 6px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.cap{display:flex;justify-content:space-between;align-items:center;gap:6px 12px;flex-wrap:wrap;font-size:.85rem;color:var(--muted)}
+.legend{display:flex;gap:12px;flex-wrap:wrap}
+.legend span{display:inline-flex;align-items:center;gap:5px}
+.cv{height:450px;position:relative}
+@media (max-width:700px){#lanesBox{height:380px} #graphBox{height:300px}}
+.cv canvas{display:block;width:100%;height:100%}
+#graphBox{cursor:ew-resize;touch-action:none}
+.timebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.play{font:inherit;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:7px 16px;cursor:pointer;min-width:84px}
+.timebar input[type=range]{flex:1 1 220px;min-width:0;accent-color:var(--accent)}
+.tval{font-family:var(--f-math);font-variant-numeric:tabular-nums;min-width:6.5em;direction:ltr;text-align:left}
+select{font:inherit;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.card h2{font-family:var(--f-display);font-size:1.3rem;margin:0;line-height:1.2}
+.card h3{font-size:.95rem;margin:0;color:var(--muted);font-weight:600}
+.src{font-size:.85rem;color:var(--muted);margin-top:-6px}
+.eq{display:flex;flex-direction:column;gap:4px}
+.eq div{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
+.eq .lbl{font-size:.85rem;color:var(--muted);min-width:4.5em}
+.eq .m{font-size:1.08rem}
+.note{margin:0;font-size:.95rem}
+.prow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.prow label{font-weight:600}
+.prow .unit{color:var(--muted);font-weight:400;font-size:.85rem}
+.prow output{font-family:var(--f-math);font-variant-numeric:tabular-nums;direction:ltr}
+.prow input{grid-column:1 / -1;width:100%;accent-color:var(--accent)}
+.derived{display:flex;flex-direction:column;gap:2px;font-size:.92rem;border-top:1px solid var(--line);padding-top:8px}
+.derived .m{font-size:1.02rem}
+table{width:100%;border-collapse:collapse;font-size:.93rem}
+th{font-weight:600;font-size:.82rem;color:var(--muted);text-align:left;padding:0 0 6px;vertical-align:bottom}
+th:first-child{text-align:right}
+th .hd{display:inline-block;border-bottom:3px solid currentColor;padding-bottom:2px;line-height:1.25}
+td{padding:5px 0;border-top:1px solid var(--line);vertical-align:middle}
+tr.sep td{border-top:2px solid var(--line)}
+td.n{font-family:var(--f-math);font-variant-numeric:tabular-nums;direction:ltr;text-align:left;white-space:nowrap;padding-inline-start:8px}
+td .m{font-size:1.04rem}
+.dim{color:var(--muted);font-size:.8rem}
+</style>
+<style>body{margin:0}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>נפילה עם גרר</h1>
+    <p class="lede">כוח הגרר פועל נגד כיוון המהירות וגדל ככל שהמהירות גדלה. בחרו תרחיש, הפעילו את התנועה והשוו בין תנועה עם גרר לתנועה בלעדיו.</p>
+    <div class="key">
+      <span><i class="sw" style="background:var(--c-vel)"></i>מהירות <span class="m">v</span></span>
+      <span><i class="sw" style="background:var(--c-mg)"></i>משקל <span class="m">mg</span></span>
+      <span><i class="sw" style="background:var(--c-drag)"></i>כוח הגרר</span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+
+  <main class="grid">
+    <section class="col">
+      <div class="viz">
+        <div class="panel">
+          <div class="cap"><span id="lanesCap"></span></div>
+          <div class="cv" id="lanesBox"><canvas id="lanes" aria-label="הגופים בתנועה עם כוחות המשקל והגרר"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="cap"><span id="graphCap"></span><span class="legend" id="legend"></span></div>
+          <div class="cv" id="graphBox"><canvas id="graph" aria-label="גרף המהירות כפונקציה של הזמן"></canvas></div>
+        </div>
+      </div>
+      <div class="timebar">
+        <button class="play" id="play" type="button">הפעל</button>
+        <input type="range" id="time" dir="ltr" min="0" max="1000" step="1" value="0" aria-label="זמן">
+        <span class="tval" id="tval"></span>
+        <label class="dim" for="speed">מהירות הצגה</label>
+        <select id="speed"><option value="0.5">×0.5</option><option value="1" selected>×1</option><option value="2">×2</option></select>
+      </div>
+    </section>
+
+    <aside class="col">
+      <div class="card">
+        <h2 id="scName"></h2>
+        <div class="src" id="scSrc"></div>
+        <div class="eq" id="scEq"></div>
+        <p class="note" id="scNote"></p>
+      </div>
+      <div class="card">
+        <h3>פרמטרים</h3>
+        <div id="params" class="col" style="gap:10px"></div>
+        <div class="derived" id="derived"></div>
+      </div>
+      <div class="card">
+        <h3>ערכים ברגע הנוכחי</h3>
+        <table id="readout"></table>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script>
+(function(){
+document.documentElement.lang='he';
+document.documentElement.dir='rtl';
+const $=s=>document.querySelector(s);
+const g=9.8;
+
+/* ---------- models ---------- */
+function fallModel(p){
+  const tau=p.m/p.b, vTl=g*tau, vTq=Math.sqrt(p.m*g/p.c);
+  const lnch=z=>z>20? z-Math.LN2 : Math.log(Math.cosh(z));
+  const cases=[
+    {name:'נפילה חופשית', sub:'F = 0', col:'free', dragLbl:'',
+     pos:t=>0.5*g*t*t, v:t=>g*t, a:()=>g, F:()=>0},
+    {name:'גרר ליניארי', sub:'F = −bv', col:'lin', dragLbl:'bv',
+     pos:t=>vTl*(t-tau*(1-Math.exp(-t/tau))), v:t=>vTl*(1-Math.exp(-t/tau)), a:t=>g*Math.exp(-t/tau), F:t=>1-Math.exp(-t/tau)},
+    {name:'גרר ריבועי', sub:'F = −cv²', col:'quad', dragLbl:'cv²',
+     pos:t=>vTq*vTq/g*lnch(g*t/vTq), v:t=>vTq*Math.tanh(g*t/vTq), a:t=>g*(1-Math.tanh(g*t/vTq)**2), F:t=>Math.tanh(g*t/vTq)**2}
+  ];
+  const T=Math.min(Math.max(5*tau, 3*vTq/g, 3), 30);
+  const posMax=1.08*Math.max(cases[1].pos(T), cases[2].pos(T));
+  const vhi=1.2*Math.max(cases[1].v(T), cases[2].v(T));
+  return {T, cases, tau, vTl, vTq, posMax, vlo:0, vhi, vref:vhi/1.2};
+}
+
+function throwModel(p){
+  const v0=p.v0, ttop0=v0/g, H0=v0*v0/(2*g);
+  const free={name:'בלי גרר', sub:'F = 0', col:'free', dragLbl:'',
+    pos:t=>v0*t-0.5*g*t*t, v:t=>v0-g*t, a:()=>-g, F:()=>0, ttop:ttop0, H:H0};
+  let lin, quad, tau=Infinity, vT=Infinity, vTq=Infinity;
+  if (p.b<1e-9){
+    lin=Object.assign({}, free, {name:'גרר ליניארי', sub:'F = −bv', col:'lin', dragLbl:'bv'});
+  } else {
+    tau=p.m/p.b; vT=g*tau;
+    const vel=t=>(v0+vT)*Math.exp(-t/tau)-vT;
+    lin={name:'גרר ליניארי', sub:'F = −bv', col:'lin', dragLbl:'bv',
+      pos:t=>(v0+vT)*tau*(1-Math.exp(-t/tau))-vT*t, v:vel, a:t=>-g-vel(t)/tau, F:t=>-vel(t)/vT,
+      ttop:tau*Math.log1p(v0/vT), H:tau*(v0-vT*Math.log1p(v0/vT))};
+  }
+  if (p.c<1e-9){
+    quad=Object.assign({}, free, {name:'גרר ריבועי', sub:'F = −cv|v|', col:'quad', dragLbl:'cv²'});
+  } else {
+    // up: v = vT tan(φ0 − gt/vT); after the top: v = −vT tanh(g(t − t_top)/vT)
+    vTq=Math.sqrt(p.m*g/p.c);
+    const k=g/vTq, Lq=vTq*vTq/g, ph=Math.atan(v0/vTq), tt=ph/k, Hq=0.5*Lq*Math.log1p((v0/vTq)**2);
+    const lnch=z=>z>20? z-Math.LN2 : Math.log(Math.cosh(z));
+    const vel=t=> t<=tt ? vTq*Math.tan(ph-k*t) : -vTq*Math.tanh(k*(t-tt));
+    quad={name:'גרר ריבועי', sub:'F = −cv|v|', col:'quad', dragLbl:'cv²',
+      pos:t=> t<=tt ? Lq*Math.log(Math.cos(ph-k*t)/Math.cos(ph)) : Hq-Lq*lnch(k*(t-tt)),
+      v:vel, a:t=>{const v=vel(t); return -g*(1+v*Math.abs(v)/(vTq*vTq));},
+      F:t=>{const v=vel(t); return -v*Math.abs(v)/(vTq*vTq);}, ttop:tt, H:Hq};
+  }
+  const cases=[free, lin, quad];
+  // no ground: run long enough for the drag balls to approach their terminal speed
+  const want=[];
+  if(Number.isFinite(tau)) want.push(lin.ttop+3*tau);
+  if(Number.isFinite(vTq)) want.push(quad.ttop+2.5*vTq/g);
+  const T= want.length ? Math.max(3*v0/g, Math.min(Math.max(...want), 6*v0/g)) : 3*v0/g;
+  const vlo=1.15*Math.min(-v0, lin.v(T), quad.v(T)), vhi=1.15*v0;
+  const posMin=1.05*Math.min(lin.pos(T), quad.pos(T), -0.3*H0);
+  return {T, cases, tau, vT, vTq, v0, posMax:1.12*H0, posMin, vlo, vhi, vref:v0};
+}
+
+const MODES={
+  fall:{
+    tab:'נפילה ממנוחה', name:'נפילה ממנוחה', src:'פרק 8 ותרגיל 9 בסעיף 9.3 · ציר x כלפי מטה',
+    eq:'<div><span class="lbl">גרר ליניארי</span><span class="m">v(t) = (mg/b)(1 − e<sup>−bt/m</sup>)</span></div>'+
+       '<div><span class="lbl">גרר ריבועי</span><span class="m">v(t) = v<sub>T</sub> tanh(gt/v<sub>T</sub>)</span></div>',
+    note:'שלושה גופים מתחילים ליפול ממנוחה באותו רגע. בהתחלה המהירות קטנה והגרר זניח, ולכן שלושתם מאיצים בתאוצה g. ככל שהמהירות גדלה הגרר גדל, עד שהוא משתווה למשקל. מאותו רגע התאוצה מתאפסת והגוף נע במהירות הסופית v<sub>T</sub>. בעקבות רואים את זה בעין: בנפילה חופשית המרווחים הולכים וגדלים, ועם גרר הם מתייצבים. בגרף, הקו של הנפילה החופשית הוא גם השיפוע ההתחלתי g של שתי העקומות האחרות, והוא חוצה את הקו v<sub>T</sub> של הגרר הליניארי בדיוק ב־<span class="m">t = τ</span>.',
+    params:[
+      {k:'m',label:'m',unit:'ק"ג',min:0.2,max:5,step:0.1,def:1},
+      {k:'b',label:'b',unit:"ק\"ג/ש'",min:0.1,max:2,step:0.05,def:0.5},
+      {k:'c',label:'c',unit:"ק\"ג/מ'",min:0.005,max:0.1,step:0.005,def:0.025}
+    ],
+    build:fallModel
+  },
+  throw:{
+    tab:'זריקה כלפי מעלה', name:'זריקה כלפי מעלה עם גרר', src:'',
+    eq:'<div><span class="lbl">ליניארי</span><span class="m">t<sub>top</sub> = (m/b) ln(1 + bv<sub>0</sub>/mg)</span></div>'+
+       '<div><span class="lbl"></span><span class="m">H = (m/b)[v<sub>0</sub> − (mg/b) ln(1 + bv<sub>0</sub>/mg)]</span></div>'+
+       '<div><span class="lbl">ריבועי</span><span class="m">t<sub>top</sub> = (v<sub>T</sub>/g) arctan(v<sub>0</sub>/v<sub>T</sub>)</span></div>'+
+       '<div><span class="lbl"></span><span class="m">H = (v<sub>T</sub>²/2g) ln(1 + v<sub>0</sub>²/v<sub>T</sub>²)</span></div>',
+    note:'בעלייה הגרר פועל כלפי מטה, באותו כיוון כמו המשקל, ולכן הכדור נבלם מהר יותר. עם שני סוגי הגרר הכדור מגיע לשיא מוקדם יותר מ־<span class="m">v<sub>0</sub>/g</span> ולגובה נמוך יותר מ־<span class="m">v<sub>0</sub>²/2g</span>. בשיא המהירות מתאפסת וגם הגרר. בירידה הגרר מתהפך ופועל כלפי מעלה, והמהירות מתקרבת ל־<span class="m">−v<sub>T</sub></span>. הקטינו את b או את c עד 0 וראו שהתוצאות מתכנסות למקרה בלי גרר. בגרף, העקומה הכחולה חוצה את הקו האפור ברגע שהכדור עם הגרר הליניארי חוזר לגובה הזריקה. זה לא מקרי: מהחוק השני <span class="m">v = v<sub>0</sub> − gt − y/τ</span>, ובגובה הזריקה <span class="m">y = 0</span>.',
+    params:[
+      {k:'v0',label:'v₀',unit:"מ'/ש'",min:5,max:40,step:1,def:20},
+      {k:'m',label:'m',unit:'ק"ג',min:0.2,max:5,step:0.1,def:1},
+      {k:'b',label:'b',unit:"ק\"ג/ש'",min:0,max:2,step:0.05,def:0.5},
+      {k:'c',label:'c',unit:"ק\"ג/מ'",min:0,max:0.1,step:0.005,def:0.025}
+    ],
+    build:throwModel
+  }
+};
+const ORDER=['fall','throw'];
+const P={}; for(const id of ORDER){P[id]={}; for(const d of MODES[id].params) P[id][d.k]=d.def;}
+
+const S={mode:'fall',u:0,playing:false,speed:1};
+let M=null;
+
+/* ---------- formatting ---------- */
+const SUP={'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+function fmt(x){
+  if(!Number.isFinite(x))return '—';
+  const a=Math.abs(x); if(a<5e-4)return '0';
+  let s;
+  if(a>=1e5||a<1e-2){const e=Math.floor(Math.log10(a));s=(x/10**e).toFixed(2)+'×10'+String(e).split('').map(c=>SUP[c]).join('');}
+  else if(a>=100) s=String(Math.round(x));
+  else s=String(Number(x.toPrecision(3)));
+  return s.replace(/^-/,'−');
+}
+function fmtP(v){return (Math.round(v*1000)/1000).toString();}
+function nice(x){const e=10**Math.floor(Math.log10(x)),f=x/e;return (f<1.5?1:f<3.5?2:f<7.5?5:10)*e;}
+
+/* ---------- state of a case at time t ---------- */
+function state(c,t){
+  return {pos:c.pos(t), v:c.v(t), a:c.a(t), F:c.F(t), landed:false};
+}
+
+/* ---------- UI construction ---------- */
+function buildTabs(){
+  const nav=$('#tabs'); nav.innerHTML='';
+  for(const id of ORDER){
+    const b=document.createElement('button');
+    b.type='button';b.className='tab';b.setAttribute('role','tab');b.id='tab-'+id;
+    b.setAttribute('aria-selected',String(id===S.mode)); b.textContent=MODES[id].tab;
+    b.addEventListener('click',()=>{ if(location.hash!=='#'+id) location.hash=id; else setMode(id); });
+    nav.appendChild(b);
+  }
+}
+function buildParams(){
+  const box=$('#params'); box.innerHTML='';
+  for(const d of MODES[S.mode].params){
+    const id='p-'+S.mode+'-'+d.k, row=document.createElement('div'); row.className='prow';
+    row.innerHTML='<label for="'+id+'"><span class="m">'+d.label+'</span> <span class="unit">'+d.unit+'</span></label>'+
+      '<output class="m" for="'+id+'">'+fmtP(P[S.mode][d.k])+'</output>'+
+      '<input type="range" dir="ltr" id="'+id+'" min="'+d.min+'" max="'+d.max+'" step="'+d.step+'" value="'+P[S.mode][d.k]+'">';
+    const inp=row.querySelector('input'),out=row.querySelector('output');
+    inp.addEventListener('input',()=>{
+      const tNow=S.u*M.T;
+      P[S.mode][d.k]=+inp.value; out.textContent=fmtP(+inp.value);
+      recompute(); S.u=Math.min(1,tNow/M.T); render();
+    });
+    box.appendChild(row);
+  }
+}
+const ROWS={
+  fall:[
+    {html:'<span class="m">x</span> <span class="dim">(מ\')</span>', f:s=>s.pos},
+    {html:'<span class="m">v</span> <span class="dim">(מ\'/ש\')</span>', f:s=>s.v},
+    {html:'<span class="m">a</span> <span class="dim">(מ\'/ש²)</span>', f:s=>s.a},
+    {html:'גרר / משקל', f:s=>s.F}
+  ],
+  throw:[
+    {html:'<span class="m">y</span> <span class="dim">(מ\')</span>', f:s=>s.pos},
+    {html:'<span class="m">v</span> <span class="dim">(מ\'/ש\')</span>', f:s=>s.v},
+    {html:'<span class="m">a</span> <span class="dim">(מ\'/ש²)</span>', f:s=>s.a},
+    {html:'גרר / משקל', f:s=>Math.abs(s.F)},
+    {sep:true, html:'זמן עד השיא <span class="dim">(ש\')</span>', fc:c=>c.ttop},
+    {html:'גובה מקסימלי <span class="m">H</span> <span class="dim">(מ\')</span>', fc:c=>c.H}
+  ]
+};
+function buildTable(){
+  const cs=M.cases;
+  let h='<thead><tr><th></th>'+cs.map(c=>'<th><span class="hd" style="border-color:var(--c-'+c.col+')">'+c.name+'</span></th>').join('')+'</tr></thead><tbody>';
+  ROWS[S.mode].forEach((r,i)=>{
+    h+='<tr'+(r.sep?' class="sep"':'')+'><td>'+r.html+'</td>'+cs.map((c,j)=>'<td class="n" id="o-'+i+'-'+j+'"></td>').join('')+'</tr>';
+  });
+  $('#readout').innerHTML=h+'</tbody>';
+  $('#legend').innerHTML=cs.map(c=>'<span><i class="sw" style="background:var(--c-'+c.col+')"></i>'+c.name+'</span>').join('');
+}
+function derivedHTML(){
+  const unitT=" ש'", unitV=" מ'/ש'";
+  if(S.mode==='fall'){
+    return '<div><span class="m">τ = m/b = '+fmt(M.tau)+'</span>'+unitT+'</div>'+
+      '<div>ליניארי: <span class="m">v<sub>T</sub> = mg/b = '+fmt(M.vTl)+'</span>'+unitV+'</div>'+
+      '<div>ריבועי: <span class="m">v<sub>T</sub> = √(mg/c) = '+fmt(M.vTq)+'</span>'+unitV+'</div>';
+  }
+  const lin = Number.isFinite(M.tau)
+    ? '<div><span class="m">τ = m/b = '+fmt(M.tau)+'</span>'+unitT+'</div><div>ליניארי: <span class="m">v<sub>T</sub> = mg/b = '+fmt(M.vT)+'</span>'+unitV+'</div>'
+    : '<div>ליניארי: כש־<span class="m">b = 0</span> אין גרר.</div>';
+  const quad = Number.isFinite(M.vTq)
+    ? '<div>ריבועי: <span class="m">v<sub>T</sub> = √(mg/c) = '+fmt(M.vTq)+'</span>'+unitV+'</div>'
+    : '<div>ריבועי: כש־<span class="m">c = 0</span> אין גרר.</div>';
+  return lin+quad;
+}
+function recompute(){
+  const md=MODES[S.mode];
+  M=md.build(P[S.mode]);
+  M.dt=nice(M.T/12);
+  $('#derived').innerHTML=derivedHTML();
+  buildTable();
+  $('#lanesCap').innerHTML='המיקום בכל רגע · עקבות כל <span class="m">'+fmt(M.dt)+'</span> ש\'';
+  $('#graphCap').innerHTML = S.mode==='fall'
+    ? 'המהירות <span class="m">v</span> (מ\'/ש\') לפי הזמן <span class="m">t</span> (ש\')'
+    : 'המהירות <span class="m">v</span> (מ\'/ש\', חיובית כלפי מעלה) לפי <span class="m">t</span> (ש\')';
+}
+function setMode(id){
+  if(!MODES[id]) id='fall';
+  S.mode=id; stop();
+  document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',String(b.id==='tab-'+id)));
+  const md=MODES[id];
+  $('#scName').textContent=md.name; $('#scSrc').textContent=md.src; $('#scSrc').hidden=!md.src;
+  $('#scEq').innerHTML=md.eq; $('#scNote').innerHTML=md.note;
+  buildParams(); recompute();
+  S.u = id==='fall' ? 0.35 : 0.2;
+  render();
+}
+
+/* ---------- colours ---------- */
+let C={};
+function readColors(){
+  const cs=getComputedStyle(document.documentElement),g2=n=>cs.getPropertyValue(n).trim();
+  C={stage:g2('--stage'),ink:g2('--ink'),muted:g2('--muted'),grid:g2('--grid'),axis:g2('--axis'),line:g2('--line'),
+     free:g2('--c-free'),lin:g2('--c-lin'),quad:g2('--c-quad'),drag:g2('--c-drag'),mg:g2('--c-mg'),vel:g2('--c-vel'),accent:g2('--accent')};
+}
+
+/* ---------- canvas helpers ---------- */
+const lc=$('#lanes'), lx=lc.getContext('2d');
+const gc=$('#graph'), gx=gc.getContext('2d');
+let LW=0,LH=0,GW=0,GH=0;
+function size(c,cx){
+  const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  c.width=Math.max(1,Math.round(r.width*d)); c.height=Math.max(1,Math.round(r.height*d));
+  cx.setTransform(d,0,0,d,0,0); return [r.width,r.height];
+}
+function resize(){ [LW,LH]=size(lc,lx); [GW,GH]=size(gc,gx); render(); }
+function arrow(cx,x1,y1,x2,y2,col,w){
+  const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy); if(L<2)return;
+  const ux=dx/L,uy=dy/L,hs=Math.min(6+w*1.6,L*0.5),hw=hs*0.55;
+  cx.save(); cx.strokeStyle=col; cx.fillStyle=col; cx.lineWidth=w; cx.lineCap='round';
+  cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2-ux*hs*0.8,y2-uy*hs*0.8); cx.stroke();
+  cx.beginPath(); cx.moveTo(x2,y2); cx.lineTo(x2-ux*hs-uy*hw,y2-uy*hs+ux*hw); cx.lineTo(x2-ux*hs+uy*hw,y2-uy*hs-ux*hw); cx.closePath(); cx.fill();
+  cx.restore();
+}
+/* math label; "v_T" draws T as a subscript */
+function mlabel(cx,txt,x,y,col,size,align,bold){
+  size=size||15; align=align||'center';
+  const [base,sub]=txt.split('_');
+  const f1=(bold?'600 ':'')+size+"px 'STIX Two Text','Cambria Math',serif";
+  const f2=(bold?'600 ':'')+Math.round(size*0.72)+"px 'STIX Two Text','Cambria Math',serif";
+  cx.save(); cx.direction='ltr'; cx.textBaseline='middle'; cx.textAlign='left';
+  cx.font=f1; const w1=cx.measureText(base).width;
+  cx.font=f2; const w2=sub?cx.measureText(sub).width:0;
+  const W=w1+w2; let x0= align==='center'? x-W/2 : align==='right'? x-W : x;
+  cx.lineWidth=4; cx.strokeStyle=C.stage; cx.lineJoin='round'; cx.fillStyle=col;
+  cx.font=f1; cx.strokeText(base,x0,y); cx.fillText(base,x0,y);
+  if(sub){ cx.font=f2; cx.strokeText(sub,x0+w1,y+size*0.3); cx.fillText(sub,x0+w1,y+size*0.3); }
+  cx.restore();
+}
+function hlabel(cx,txt,x,y,col,size,weight,align){
+  cx.save(); cx.direction='rtl'; cx.textAlign=align||'center'; cx.textBaseline='middle';
+  cx.font=(weight||600)+' '+(size||13)+"px 'Assistant','Segoe UI',Arial,sans-serif";
+  cx.lineWidth=4; cx.strokeStyle=C.stage; cx.lineJoin='round'; cx.strokeText(txt,x,y);
+  cx.fillStyle=col; cx.fillText(txt,x,y); cx.restore();
+}
+function numText(cx,txt,x,y,col,align){
+  cx.save(); cx.direction='ltr'; cx.textAlign=align; cx.textBaseline='middle';
+  cx.font="12px 'STIX Two Text',serif"; cx.fillStyle=col; cx.fillText(txt,x,y); cx.restore();
+}
+
+/* ---------- render ---------- */
+function render(){
+  if(!M||!LW)return;
+  const t=S.u*M.T;
+  drawLanes(t); drawGraph(t); readout(t);
+  $('#time').value=Math.round(S.u*1000);
+  $('#tval').textContent='t = '+t.toFixed(2)+" ש'";
+  $('#play').textContent=S.playing?'עצור':(S.u>=1?'מההתחלה':'הפעל');
+}
+
+function drawLanes(t){
+  const cx=lx, W=LW, H=LH, fall=S.mode==='fall';
+  cx.fillStyle=C.stage; cx.fillRect(0,0,W,H);
+  const cs=M.cases, n=cs.length, L=40, R=6, laneW=(W-L-R)/n;
+  const y0=62, yb=H-14, lo= fall? 0 : M.posMin, hi=M.posMax, sc=(yb-y0)/(hi-lo);
+  const SY= fall? p=>y0+p*sc : p=>y0+(hi-p)*sc;
+  // distance grid
+  for(const v of ticks(lo,hi,6)){
+    const y=SY(v);
+    cx.strokeStyle=C.grid; cx.lineWidth=1; cx.beginPath(); cx.moveTo(L,y); cx.lineTo(W-R,y); cx.stroke();
+    numText(cx,fmt(v),L-6,y,C.muted,'right');
+  }
+  hlabel(cx,"מ'",L-16,y0-22,C.muted,12,400);
+  if(!fall){ cx.strokeStyle=C.axis; cx.lineWidth=1.5; cx.beginPath(); cx.moveTo(L,SY(0)); cx.lineTo(W-R,SY(0)); cx.stroke(); }
+  const L0=40;
+  cs.forEach((c,i)=>{
+    const col=C[c.col], xc=W-R-laneW*(i+0.5);
+    // lane guide
+    cx.save(); cx.strokeStyle=C.line; cx.setLineDash([3,5]); cx.beginPath(); cx.moveTo(xc,y0-6); cx.lineTo(xc,yb); cx.stroke(); cx.restore();
+    hlabel(cx,c.name,xc,16,col,13,700);
+    mlabel(cx,c.sub,xc,36,C.muted,13);
+    // maximum height (throw)
+    if(!fall){
+      const yH=SY(c.H), hw=Math.min(laneW*0.38,48);
+      cx.save(); cx.strokeStyle=col; cx.lineWidth=1.2; cx.setLineDash([5,4]); cx.beginPath(); cx.moveTo(xc-hw,yH); cx.lineTo(xc+hw,yH); cx.stroke(); cx.restore();
+      mlabel(cx,'H',xc+hw+8,yH,col,14,'center',true);
+    }
+    // trail
+    cx.save(); cx.globalAlpha=0.45; cx.strokeStyle=col; cx.lineWidth=1.5;
+    for(let k=1; k*M.dt<=t+1e-9; k++){
+      const s=state(c,k*M.dt);
+      if(s.pos<lo||s.pos>hi) continue;
+      cx.beginPath(); cx.arc(xc,SY(s.pos),6,0,2*Math.PI); cx.stroke();
+    }
+    cx.restore();
+    // the body
+    const s=state(c,t);
+    if(s.pos>hi||s.pos<lo){
+      cx.fillStyle=col; cx.beginPath(); cx.moveTo(xc,yb+2); cx.lineTo(xc-7,yb-8); cx.lineTo(xc+7,yb-8); cx.closePath(); cx.fill();
+      hlabel(cx,'מחוץ לתחום',xc,yb-20,col,12,600);
+      return;
+    }
+    const by=SY(s.pos);
+    if(!s.landed){
+      // weight through the centre, drag to the right, velocity to the left
+      arrow(cx,xc,by,xc,by+L0,C.mg,2.2);
+      mlabel(cx,'mg',xc,by+L0+11,C.mg,14,'center',true);
+      if(Math.abs(s.F)>0.02){
+        const len=Math.min(Math.abs(s.F),2.5)*L0, dir=s.F>0?-1:1;
+        arrow(cx,xc+14,by,xc+14,by+dir*len,C.drag,2.2);
+        mlabel(cx,c.dragLbl,xc+19,by+dir*len*0.75,C.drag,14,'left',true);
+      }
+      const vs= fall? s.v : -s.v, vlen=Math.min(Math.abs(s.v)/M.vref,2.2)*64;
+      if(vlen>3){
+        const d=vs>0?1:-1;
+        arrow(cx,xc-16,by,xc-16,by+d*vlen,C.vel,2.6);
+        if(vlen>12) mlabel(cx,'v',xc-22,by+d*vlen*0.8,C.vel,15,'right',true);
+      }
+    }
+    cx.beginPath(); cx.arc(xc,by,8,0,2*Math.PI); cx.fillStyle=col; cx.fill();
+    cx.lineWidth=2; cx.strokeStyle=C.stage; cx.stroke();
+  });
+}
+
+function ticks(lo,hi,n){
+  const st=nice((hi-lo)/n), out=[];
+  for(let v=Math.ceil(lo/st)*st; v<=hi+1e-9; v+=st) out.push(Math.abs(v)<st*1e-6?0:v);
+  return out;
+}
+function drawGraph(t){
+  const cx=gx, W=GW, H=GH, fall=S.mode==='fall';
+  cx.fillStyle=C.stage; cx.fillRect(0,0,W,H);
+  const l=44,r=18,tp=16,bt=28, w=W-l-r, h=H-tp-bt; if(w<20||h<20)return;
+  const T=M.T, lo=M.vlo, hi=M.vhi;
+  const X=tt=>l+tt/T*w, Y=v=>tp+(hi-v)/(hi-lo)*h;
+  // grid
+  cx.lineWidth=1;
+  for(const v of ticks(lo,hi,6)){ const y=Y(v); cx.strokeStyle=C.grid; cx.beginPath(); cx.moveTo(l,y); cx.lineTo(l+w,y); cx.stroke(); numText(cx,fmt(v),l-6,y,C.muted,'right'); }
+  for(const tt of ticks(0,T,7)){ const x=X(tt); cx.strokeStyle=C.grid; cx.beginPath(); cx.moveTo(x,tp); cx.lineTo(x,tp+h); cx.stroke(); numText(cx,fmt(tt),x,tp+h+12,C.muted,'center'); }
+  cx.strokeStyle=C.axis; cx.beginPath(); cx.moveTo(l,Y(0)); cx.lineTo(l+w,Y(0)); cx.moveTo(l,tp); cx.lineTo(l,tp+h); cx.stroke();
+  mlabel(cx,'t',l+w+9,Y(0),C.muted,15); mlabel(cx,'v',l+12,tp+2,C.muted,15);
+
+  cx.save(); cx.beginPath(); cx.rect(l,tp,w,h); cx.clip();
+  const hline=(v,col,lab,below,atLeft)=>{
+    if(v<lo||v>hi) return;
+    cx.save(); cx.strokeStyle=col; cx.lineWidth=1.3; cx.setLineDash([6,5]); cx.beginPath(); cx.moveTo(l,Y(v)); cx.lineTo(l+w,Y(v)); cx.stroke(); cx.restore();
+    if(atLeft) mlabel(cx,lab,l+8,Y(v)+(below?11:-11),col,14,'left',true);
+    else mlabel(cx,lab,l+w-6,Y(v)+(below?11:-11),col,14,'right',true);
+  };
+  if(fall){
+    const close=Math.abs(Y(M.vTl)-Y(M.vTq))<22, linBelow=M.vTl<M.vTq;
+    hline(M.vTl,C.lin,'v_T',close&&linBelow);
+    hline(M.vTq,C.quad,'v_T',close&&!linBelow);
+    if(M.tau<T && M.vTl<=hi){
+      cx.save(); cx.strokeStyle=C.lin; cx.lineWidth=1.2; cx.setLineDash([2,4]); cx.beginPath(); cx.moveTo(X(M.tau),Y(0)); cx.lineTo(X(M.tau),Y(M.vTl)); cx.stroke(); cx.restore();
+      mlabel(cx,'τ',X(M.tau)+9,Y(0)-11,C.lin,15,'center',true);
+    }
+  } else {
+    const both=Number.isFinite(M.vT)&&Number.isFinite(M.vTq), close=both&&Math.abs(Y(-M.vT)-Y(-M.vTq))<22, linBelow=-M.vT<-M.vTq;
+    if(Number.isFinite(M.vT)) hline(-M.vT,C.lin,'−v_T',!close||linBelow,true);
+    if(Number.isFinite(M.vTq)) hline(-M.vTq,C.quad,'−v_T',!close||!linBelow,true);
+  }
+  // curves
+  for(const c of M.cases){
+    const tEnd=T, N=300;
+    cx.strokeStyle=C[c.col]; cx.lineWidth=2.2; cx.lineJoin='round'; cx.beginPath();
+    for(let i=0;i<=N;i++){ const tt=tEnd*i/N, x=X(tt), y=Y(c.v(tt)); i?cx.lineTo(x,y):cx.moveTo(x,y); }
+    cx.stroke();
+  }
+  cx.restore();
+  // turning points (throw)
+  if(!fall){
+    const [fr,ln,qd]=M.cases;
+    const mark=(tt,col,lab,dy,align)=>{ const x=X(tt), y=Y(0); cx.beginPath(); cx.arc(x,y,4,0,2*Math.PI); cx.fillStyle=col; cx.fill(); mlabel(cx,lab,align==='right'?x-6:x+8,y+dy,col,14,align,true); };
+    mark(fr.ttop,C.free,'v₀/g',15,'left');
+    mark(ln.ttop,C.lin,'t_top',-14,'right');
+    mark(qd.ttop,C.quad,'t_top',-32,'right');
+  }
+  // cursor
+  const x=X(t);
+  cx.save(); cx.strokeStyle=C.ink; cx.lineWidth=1; cx.setLineDash([3,3]); cx.beginPath(); cx.moveTo(x,tp); cx.lineTo(x,tp+h); cx.stroke(); cx.restore();
+  for(const c of M.cases){
+    const v=c.v(t); if(v<lo||v>hi) continue;
+    cx.beginPath(); cx.arc(x,Y(v),4.5,0,2*Math.PI); cx.fillStyle=C[c.col]; cx.fill(); cx.lineWidth=1.5; cx.strokeStyle=C.stage; cx.stroke();
+  }
+}
+
+function readout(t){
+  M.cases.forEach((c,j)=>{
+    const s=state(c,t);
+    ROWS[S.mode].forEach((r,i)=>{
+      const el=document.getElementById('o-'+i+'-'+j); if(!el) return;
+      el.textContent = r.fc ? fmt(r.fc(c)) : (s.landed && i<4 ? (i===0?'נחת':'—') : fmt(r.f(s)));
+    });
+  });
+}
+
+/* ---------- playback ---------- */
+let last=0,raf=0;
+function stop(){S.playing=false;cancelAnimationFrame(raf);}
+function tick(ts){
+  if(!S.playing)return;
+  const dt=last?Math.min(0.05,(ts-last)/1000):0; last=ts;
+  S.u+=dt*S.speed/10; if(S.u>=1){S.u=1;S.playing=false;}
+  render(); if(S.playing)raf=requestAnimationFrame(tick);
+}
+$('#play').addEventListener('click',()=>{
+  if(S.playing){stop();render();return;}
+  if(S.u>=1)S.u=0; S.playing=true; last=0; render(); raf=requestAnimationFrame(tick);
+});
+$('#time').addEventListener('input',e=>{stop();S.u=+e.target.value/1000;render();});
+$('#speed').addEventListener('change',e=>{S.speed=+e.target.value;});
+const gb=$('#graphBox');
+function pick(e){ const r=gc.getBoundingClientRect(), l=44, w=r.width-l-18; S.u=Math.max(0,Math.min(1,(e.clientX-r.left-l)/w)); stop(); render(); }
+gb.addEventListener('pointerdown',e=>{gb.setPointerCapture(e.pointerId);pick(e);});
+gb.addEventListener('pointermove',e=>{if(e.buttons)pick(e);});
+
+/* ---------- theme, size, routing ---------- */
+readColors();
+const mq=matchMedia('(prefers-color-scheme: dark)'), onTheme=()=>{readColors();render();};
+mq.addEventListener?mq.addEventListener('change',onTheme):mq.addListener(onTheme);
+new MutationObserver(onTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+new ResizeObserver(()=>resize()).observe($('#lanesBox'));
+new ResizeObserver(()=>resize()).observe(gb);
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>render());
+
+buildTabs();
+const fromHash=()=>{const h=location.hash.slice(1);setMode(MODES[h]?h:'fall');};
+window.addEventListener('hashchange',fromHash);
+fromHash(); resize();
+})();
+</script>
+</body>
+</html>
