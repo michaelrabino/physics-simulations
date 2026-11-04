@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>תנודות סביב שיווי המשקל</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Frank+Ruhl+Libre:wght@500;700&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+/* Layout: short header, system tabs, then (scene + phasor/graph, time bar) beside a side panel; stacks below 900px */
+:root{
+  --paper:#eef1f4; --panel:#fbfcfd; --stage:#fdfeff; --ink:#18232f; --muted:#5a6876; --line:#d3dae1;
+  --grid:#e3e8ee; --axis:#9aa7b4; --accent:#1b4a72; --accent-ink:#ffffff;
+  --c-nat:#c56f14; --c-eq:#0f8475; --c-band:rgba(15,132,117,.09); --c-spring:#4a5866; --c-comp:#b5372a;
+  --c-block:#e4ecf5; --c-curve:#2c5fae; --c-wall:#8693a0;
+  --f-display:'Frank Ruhl Libre','Times New Roman',serif;
+  --f-body:'Assistant','Segoe UI',Arial,sans-serif;
+  --f-math:'STIX Two Text','Cambria Math','Times New Roman',serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0f141a; --panel:#161d25; --stage:#121920; --ink:#e3e9ef; --muted:#93a0ad; --line:#2a3542;
+    --grid:#1c2630; --axis:#4f5d6b; --accent:#8bb8e0; --accent-ink:#0f141a;
+    --c-nat:#efa04e; --c-eq:#3cc6b2; --c-band:rgba(60,198,178,.11); --c-spring:#a9b6c3; --c-comp:#f06a56;
+    --c-block:#22303e; --c-curve:#79a3ee; --c-wall:#5f6d7b;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0f141a; --panel:#161d25; --stage:#121920; --ink:#e3e9ef; --muted:#93a0ad; --line:#2a3542;
+  --grid:#1c2630; --axis:#4f5d6b; --accent:#8bb8e0; --accent-ink:#0f141a;
+  --c-nat:#efa04e; --c-eq:#3cc6b2; --c-band:rgba(60,198,178,.11); --c-spring:#a9b6c3; --c-comp:#f06a56;
+  --c-block:#22303e; --c-curve:#79a3ee; --c-wall:#5f6d7b;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55}
+.wrap{max-width:1240px;margin:0 auto;padding-block:22px 40px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:16px}
+.m{font-family:var(--f-math);font-style:normal;unicode-bidi:isolate;direction:ltr}
+header.top{display:flex;flex-direction:column;gap:6px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0;line-height:1.15;text-wrap:balance}
+.lede{margin:0;max-width:72ch;color:var(--muted)}
+.key{display:flex;gap:16px;flex-wrap:wrap;font-size:.95rem}
+.key span{display:inline-flex;align-items:center;gap:6px}
+.sw{width:18px;height:3px;border-radius:2px;display:inline-block;flex:none}
+.sw.dash{height:0;border-top:2px dashed currentColor;background:none}
+.sw.box{height:12px;width:18px;border-radius:2px}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 14px;border-radius:999px;cursor:pointer}
+.tab[aria-selected="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.tab:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:12px;min-width:0}
+.viz{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:12px}
+@media (max-width:700px){.viz{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--stage);border:1px solid var(--line);border-radius:10px;padding:8px 10px 6px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.cap{font-size:.85rem;color:var(--muted)}
+.cv{height:430px}
+@media (max-width:700px){#sceneBox{height:340px} #graphBox{height:330px}}
+.cv canvas{display:block;width:100%;height:100%}
+.timebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.play{font:inherit;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:7px 16px;cursor:pointer;min-width:84px}
+.timebar input[type=range]{flex:1 1 220px;min-width:0;accent-color:var(--accent)}
+.tval{font-family:var(--f-math);font-variant-numeric:tabular-nums;min-width:6.5em;direction:ltr;text-align:left}
+select{font:inherit;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.card h2{font-family:var(--f-display);font-size:1.3rem;margin:0;line-height:1.2}
+.card h3{font-size:.95rem;margin:0;color:var(--muted);font-weight:600}
+.card h4{font-size:.85rem;margin:4px 0 0;color:var(--muted);font-weight:600;border-top:1px solid var(--line);padding-top:10px}
+.eq{display:flex;flex-direction:column;gap:3px}
+.eq .m{font-size:1.08rem}
+.note{margin:0;font-size:.95rem}
+.prow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
+.prow label{font-weight:600}
+.prow .unit{color:var(--muted);font-weight:400;font-size:.85rem}
+.prow output{font-family:var(--f-math);font-variant-numeric:tabular-nums;direction:ltr}
+.prow input{grid-column:1 / -1;width:100%;accent-color:var(--accent)}
+.presets{display:flex;flex-wrap:wrap;gap:6px}
+.chip{font:inherit;font-size:.88rem;border:1px dashed var(--accent);background:transparent;color:var(--ink);border-radius:6px;padding:4px 10px;cursor:pointer;text-align:start}
+.chip:hover{background:var(--grid)}
+.vals{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:baseline;font-size:.95rem}
+.vals .n{font-family:var(--f-math);font-variant-numeric:tabular-nums;direction:ltr;text-align:left}
+.vals .dim{color:var(--muted);font-size:.82rem}
+.forms{display:flex;flex-direction:column;gap:4px}
+.forms div{font-family:var(--f-math);font-size:1.02rem;direction:ltr;text-align:left;overflow-x:auto;white-space:nowrap}
+.dim{color:var(--muted);font-size:.82rem}
+</style>
+<style>body{margin:0}</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <h1>תנודות סביב שיווי המשקל</h1>
+    <p class="lede">גוף על קפיץ מתנודד סביב נקודת שיווי המשקל. בחרו מערכת, קבעו את תנאי ההתחלה וראו איך הם קובעים את המשרעת A ואת הפאזה φ. כשפועל על הגוף גם כוח קבוע, הוא רק מזיז את מרכז התנודה, וזמן המחזור לא משתנה.</p>
+    <div class="key">
+      <span><i class="sw dash" style="color:var(--c-nat)"></i>נקודת הרפיון</span>
+      <span><i class="sw dash" style="color:var(--c-eq)"></i>נקודת שיווי המשקל</span>
+      <span><i class="sw box" style="background:var(--c-band);border:1px solid var(--c-eq)"></i>תחום התנודה</span>
+      <span><i class="sw" style="background:var(--c-comp)"></i>קפיץ מכווץ</span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+
+  <main class="grid">
+    <section class="col">
+      <div class="viz">
+        <div class="panel">
+          <div class="cap" id="sceneCap"></div>
+          <div class="cv" id="sceneBox"><canvas id="scene" aria-label="הגוף והקפיץ"></canvas></div>
+        </div>
+        <div class="panel">
+          <div class="cap">המיקום <span class="m">x</span> (ס"מ) לפי הזמן. ההיטל של הנקודה על המעגל הוא <span class="m">x(t)</span>.</div>
+          <div class="cv" id="graphBox"><canvas id="graph" aria-label="מעגל הייחוס וגרף המיקום לפי הזמן"></canvas></div>
+        </div>
+      </div>
+      <div class="timebar">
+        <button class="play" id="play" type="button">הפעל</button>
+        <input type="range" id="time" dir="ltr" min="0" max="1000" step="1" value="0" aria-label="זמן">
+        <span class="tval" id="tval"></span>
+        <label class="dim" for="speed">מהירות הצגה</label>
+        <select id="speed"><option value="0.25">×0.25</option><option value="0.5" selected>×0.5</option><option value="1">×1</option></select>
+      </div>
+    </section>
+
+    <aside class="col">
+      <div class="card">
+        <h2 id="scName"></h2>
+        <div class="eq" id="scEq"></div>
+        <p class="note" id="scNote"></p>
+      </div>
+      <div class="card">
+        <h3>המערכת</h3>
+        <div id="sysParams" class="col" style="gap:10px"></div>
+        <div id="forceBox" class="col" style="gap:10px">
+          <h4>הכוח הקבוע</h4>
+          <div id="forceParams" class="col" style="gap:10px"></div>
+        </div>
+        <h4>תנאי התחלה</h4>
+        <div id="initParams" class="col" style="gap:10px"></div>
+        <div class="presets" id="presets"></div>
+      </div>
+      <div class="card">
+        <h3>התנודה</h3>
+        <div class="vals" id="vals"></div>
+        <h4>הפתרון בשלוש צורות שקולות</h4>
+        <div class="forms" id="forms"></div>
+        <h4>ברגע הנוכחי</h4>
+        <div class="vals" id="now"></div>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script>
+(function(){
+document.documentElement.lang='he';
+document.documentElement.dir='rtl';
+const $=s=>document.querySelector(s);
+const PI=Math.PI;
+const U={kg:'ק"ג', k:"נ'/מ'", cm:'ס"מ', cms:'ס"מ/ש\'', g:"מ'/ש²", deg:'°'};
+
+/* ---------- systems (positions in cm, x measured from the natural length) ---------- */
+const SYS={
+  horizontal:{
+    tab:'קפיץ אופקי', name:'קפיץ אופקי', orient:'h', down:false,
+    cap:'ציר <span class="m">x</span> ימינה, מנקודת הרפיון של הקפיץ',
+    eq:['ẍ = −(k/m) x','ω = √(k/m)'],
+    note:'אין כאן כוח קבוע, ולכן הגוף מתנודד סביב x = 0, שבה הקפיץ רפוי. המשרעת A והפאזה φ נקבעות מתנאי ההתחלה x₀ ו־v₀. הנקודה על המעגל מסתובבת במהירות זוויתית ω, וההיטל שלה הוא x(t). הזווית שלה ברגע t = 0 היא הפאזה φ. נסו לתת לגוף מהירות התחלתית וראו איך φ משתנה.',
+    sys:[{k:'m',label:'m',unit:U.kg,min:0.2,max:5,step:0.1,def:1},{k:'k',label:'k',unit:U.k,min:1,max:100,step:1,def:10}],
+    force:[],
+    init:[{k:'x0',label:'x₀',unit:U.cm,min:-10,max:10,step:0.1,def:5},{k:'v0',label:'v₀',unit:U.cms,min:-50,max:50,step:1,def:0}],
+    presets:[{label:'דוגמה 2.4: שחרור ממנוחה מ־5 ס"מ',set:()=>({m:1,k:10,x0:5,v0:0})}],
+    model:p=>({w:Math.sqrt(p.k/p.m), xeq:0, xeqF:'x<sub>eq</sub> = 0'})
+  },
+  vertical:{
+    tab:'קפיץ אנכי', name:'קפיץ אנכי', orient:'v', down:true,
+    cap:'ציר <span class="m">x</span> כלפי מטה, מנקודת הרפיון של הקפיץ',
+    eq:['ẍ = −(k/m) x + g','x<sub>eq</sub> = mg/k','ω = √(k/m)'],
+    note:'המשקל הוא כוח קבוע, ולכן הוא רק מזיז את מרכז התנודה לנקודת שיווי המשקל, mg/k מתחת לנקודת הרפיון. שנו את g, למשל ל־1.6 כמו על הירח, וראו שהמרכז זז אבל זמן המחזור לא משתנה. כשהגוף מעל נקודת הרפיון, הקפיץ מכווץ.',
+    sys:[{k:'m',label:'m',unit:U.kg,min:0.1,max:2,step:0.05,def:0.5},{k:'k',label:'k',unit:U.k,min:5,max:100,step:1,def:50}],
+    force:[{k:'g',label:'g',unit:U.g,min:0,max:20,step:0.1,def:9.8}],
+    init:[{k:'x0',label:'x₀',unit:U.cm,min:-15,max:60,step:0.1,def:39.2},{k:'v0',label:'v₀',unit:U.cms,min:-150,max:150,step:1,def:0}],
+    presets:[
+      {label:'שחרור ממנוחה מ־4mg/k (סעיף ד)',set:p=>({x0:r1(400*p.m*p.g/p.k),v0:0})},
+      {label:'שחרור ממנוחה מנקודת הרפיון',set:()=>({x0:0,v0:0})}
+    ],
+    model:p=>({w:Math.sqrt(p.k/p.m), xeq:100*p.m*p.g/p.k, xeqF:'x<sub>eq</sub> = mg/k'})
+  },
+  incline:{
+    tab:'מדרון עם שני קפיצים', name:'גוף בין שני קפיצים על מדרון', orient:'i', down:false,
+    cap:'ציר <span class="m">x</span> במורד המדרון, מהנקודה שבה שני הקפיצים רפויים',
+    eq:['ẍ = −((k<sub>1</sub> + k<sub>2</sub>)/m) x + g sin α','x<sub>eq</sub> = mg sin α/(k<sub>1</sub> + k<sub>2</sub>)','ω = √((k<sub>1</sub> + k<sub>2</sub>)/m)'],
+    note:'רכיב המשקל לאורך המדרון, mg sin α, הוא כוח קבוע. הוא מזיז את מרכז התנודה במורד המדרון, ולא משפיע על התדירות. שני הקפיצים פועלים יחד כמו קפיץ אחד עם קבוע k₁ + k₂. שנו את α וראו שרק המרכז זז.',
+    sys:[{k:'m',label:'m',unit:U.kg,min:0.2,max:3,step:0.1,def:1},{k:'k1',label:'k₁',unit:U.k,min:5,max:80,step:1,def:30},{k:'k2',label:'k₂',unit:U.k,min:5,max:80,step:1,def:30}],
+    force:[{k:'al',label:'α',unit:U.deg,min:0,max:60,step:1,def:30}],
+    init:[{k:'x0',label:'x₀',unit:U.cm,min:-15,max:30,step:0.1,def:0},{k:'v0',label:'v₀',unit:U.cms,min:-100,max:100,step:1,def:0}],
+    presets:[{label:'שחרור ממנוחה מ־x = 0, כששני הקפיצים רפויים',set:()=>({x0:0,v0:0})}],
+    model:p=>({w:Math.sqrt((p.k1+p.k2)/p.m), xeq:100*p.m*9.8*Math.sin(p.al*PI/180)/(p.k1+p.k2), xeqF:'x<sub>eq</sub> = mg sin α/(k<sub>1</sub> + k<sub>2</sub>)'})
+  },
+  elevator:{
+    tab:'קפיץ במעלית', name:'קפיץ במעלית מאיצה', orient:'v', down:true, elev:true,
+    cap:'ציר <span class="m">x</span> כלפי מטה: התארכות הקפיץ, במערכת של המעלית',
+    eq:['ẍ = −(k/m) x + g + a<sub>0</sub>','x<sub>eq</sub> = m(g + a<sub>0</sub>)/k','ω = √(k/m)'],
+    note:'ב־t = 0 המעלית מתחילה להאיץ כלפי מעלה בתאוצה a₀. במערכת של המעלית זה כמו להגדיל את g ל־g + a₀, ולכן נקודת שיווי המשקל יורדת ל־m(g + a₀)/k. כשהגוף מתחיל במנוחה בשיווי המשקל הישן, הוא מתנודד במשרעת ma₀/k, וההתארכות המקסימלית היא m(g + 2a₀)/k.',
+    sys:[{k:'m',label:'m',unit:U.kg,min:0.2,max:3,step:0.1,def:1},{k:'k',label:'k',unit:U.k,min:10,max:100,step:1,def:50}],
+    force:[{k:'a0',label:'a₀',unit:U.g,min:-5,max:5,step:0.5,def:3}],
+    init:[{k:'x0',label:'x₀',unit:U.cm,min:0,max:60,step:0.1,def:19.6},{k:'v0',label:'v₀',unit:U.cms,min:-100,max:100,step:1,def:0}],
+    presets:[{label:'מנוחה בשיווי המשקל שלפני ההאצה',set:p=>({x0:r1(100*p.m*9.8/p.k),v0:0})}],
+    model:p=>({w:Math.sqrt(p.k/p.m), xeq:100*p.m*(9.8+p.a0)/p.k, xeqOld:100*p.m*9.8/p.k, xeqF:'x<sub>eq</sub> = m(g + a<sub>0</sub>)/k'})
+  }
+};
+function r1(x){return Math.round(x*10)/10;}
+const ORDER=['horizontal','vertical','incline','elevator'];
+const P={}; for(const id of ORDER){P[id]={}; const s=SYS[id]; for(const d of [...s.sys,...s.force,...s.init]) P[id][d.k]=d.def;}
+
+const S={id:'horizontal',u:0,playing:false,speed:0.5};
+let M=null;
+
+/* ---------- formatting ---------- */
+function fmt(x,d){
+  if(!Number.isFinite(x))return '—';
+  const a=Math.abs(x); if(a<5e-4)return '0';
+  let s = d!=null ? x.toFixed(d) : (a>=100? String(Math.round(x)) : String(Number(x.toPrecision(3))));
+  return s.replace(/^-/,'−');
+}
+function fmtP(v){return String(Math.round(v*100)/100).replace('-','−');}
+function nice(x){const e=10**Math.floor(Math.log10(x)),f=x/e;return (f<1.5?1:f<3.5?2:f<7.5?5:10)*e;}
+function ticks(lo,hi,n){const st=nice((hi-lo)/n),o=[];for(let v=Math.ceil(lo/st)*st;v<=hi+1e-9;v+=st)o.push(Math.abs(v)<st*1e-6?0:v);return o;}
+function normPh(p){ p=((p+PI)%(2*PI)+2*PI)%(2*PI)-PI; return p<=-PI+1e-12? PI : p; }
+function phStr(p){
+  p=normPh(p);
+  const q=Math.round(p/(PI/4));
+  if(Math.abs(p-q*PI/4)<1e-4){
+    const tbl={0:'0',1:'π/4',2:'π/2',3:'3π/4',4:'π','-1':'−π/4','-2':'−π/2','-3':'−3π/4','-4':'π'};
+    return tbl[q];
+  }
+  return fmt(p,2);
+}
+/* "(ωt + φ)" with the sign folded in */
+function arg(w,p){
+  const ps=phStr(p), wt=fmt(w)+'t';
+  if(ps==='0') return wt;
+  return ps.startsWith('−') ? wt+' − '+ps.slice(1) : wt+' + '+ps;
+}
+
+/* ---------- model ---------- */
+function recompute(){
+  const sys=SYS[S.id], p=P[S.id], md=sys.model(p);
+  const w=md.w, z0=p.x0-md.xeq, A=Math.hypot(z0, p.v0/w), ph=Math.atan2(-p.v0/w, z0);
+  M=Object.assign({},md,{A,ph,z0,T:2*PI/w,C:z0,D:p.v0/w});
+  M.tEnd=3*M.T;
+  // spatial range covered by the motion and the markers
+  let lo=Math.min(0,M.xeq-A,M.xeq), hi=Math.max(0,M.xeq+A,M.xeq);
+  if(md.xeqOld!=null){lo=Math.min(lo,md.xeqOld);hi=Math.max(hi,md.xeqOld);}
+  const span=Math.max(hi-lo,4), pad=(span-(hi-lo))/2;
+  M.lo=lo-pad; M.hi=hi+pad;
+  writeInfo();
+}
+function xAt(t){return M.xeq+M.A*Math.cos(M.w*t+M.ph);}
+function vAt(t){return -M.A*M.w*Math.sin(M.w*t+M.ph);}
+
+function writeInfo(){
+  const unitT=" ש'";
+  $('#vals').innerHTML=
+    '<span><span class="m">ω</span></span><span class="n">'+fmt(M.w)+' <span class="dim">רד\'/ש\'</span></span>'+
+    '<span><span class="m">T = 2π/ω</span></span><span class="n">'+fmt(M.T)+' <span class="dim">ש\'</span></span>'+
+    '<span><span class="m">'+M.xeqF+'</span></span><span class="n">'+fmt(M.xeq)+' <span class="dim">ס"מ</span></span>'+
+    '<span>משרעת <span class="m">A</span></span><span class="n">'+fmt(M.A)+' <span class="dim">ס"מ</span></span>'+
+    '<span>פאזה <span class="m">φ</span></span><span class="n">'+phStr(M.ph)+' <span class="dim">רד\'</span></span>';
+  const base = Math.abs(M.xeq)<5e-4 ? '' : fmt(M.xeq)+' + ';
+  const lines=[];
+  if(M.A<5e-4){ lines.push('x(t) = '+fmt(M.xeq)+'  (הגוף נח בשיווי המשקל)'); }
+  else{
+    lines.push('x(t) = '+base+fmt(M.A)+' cos('+arg(M.w,M.ph)+')');
+    lines.push('x(t) = '+base+fmt(M.A)+' sin('+arg(M.w,M.ph+PI/2)+')');
+    const parts=[];
+    if(Math.abs(M.C)>=5e-4) parts.push(fmt(M.C)+' cos('+fmt(M.w)+'t)');
+    if(Math.abs(M.D)>=5e-4) parts.push((parts.length&&M.D<0? '− '+fmt(-M.D) : (parts.length?'+ ':'')+fmt(M.D))+' sin('+fmt(M.w)+'t)');
+    lines.push('x(t) = '+base+parts.join(' ').replace(/^\+ /,''));
+  }
+  $('#forms').innerHTML=lines.map(l=>'<div>'+l+'</div>').join('');
+}
+
+/* ---------- UI ---------- */
+function buildTabs(){
+  const nav=$('#tabs'); nav.innerHTML='';
+  for(const id of ORDER){
+    const b=document.createElement('button');
+    b.type='button';b.className='tab';b.setAttribute('role','tab');b.id='tab-'+id;
+    b.setAttribute('aria-selected',String(id===S.id)); b.textContent=SYS[id].tab;
+    b.addEventListener('click',()=>{ if(location.hash!=='#'+id) location.hash=id; else setSys(id); });
+    nav.appendChild(b);
+  }
+}
+function slider(box,d){
+  const id='p-'+S.id+'-'+d.k, row=document.createElement('div'); row.className='prow';
+  row.innerHTML='<label for="'+id+'"><span class="m">'+d.label+'</span> <span class="unit">'+d.unit+'</span></label>'+
+    '<output class="m" for="'+id+'">'+fmtP(P[S.id][d.k])+'</output>'+
+    '<input type="range" dir="ltr" id="'+id+'" min="'+d.min+'" max="'+d.max+'" step="'+d.step+'" value="'+P[S.id][d.k]+'">';
+  const inp=row.querySelector('input'),out=row.querySelector('output');
+  inp.addEventListener('input',()=>{ P[S.id][d.k]=+inp.value; out.textContent=fmtP(+inp.value); recompute(); render(); });
+  box.appendChild(row);
+}
+function buildParams(){
+  const sys=SYS[S.id];
+  for(const [sel,list] of [['#sysParams',sys.sys],['#forceParams',sys.force],['#initParams',sys.init]]){
+    const box=$(sel); box.innerHTML=''; for(const d of list) slider(box,d);
+  }
+  $('#forceBox').hidden=!sys.force.length;
+  const pb=$('#presets'); pb.innerHTML='';
+  for(const pr of sys.presets){
+    const b=document.createElement('button'); b.type='button'; b.className='chip'; b.textContent=pr.label;
+    b.addEventListener('click',()=>{
+      Object.assign(P[S.id], pr.set(P[S.id]));
+      buildParams(); recompute(); S.u=0; render();
+    });
+    pb.appendChild(b);
+  }
+}
+function setSys(id){
+  if(!SYS[id]) id='horizontal';
+  S.id=id; stop();
+  document.querySelectorAll('.tab').forEach(b=>b.setAttribute('aria-selected',String(b.id==='tab-'+id)));
+  const sys=SYS[id];
+  $('#scName').textContent=sys.name;
+  $('#scEq').innerHTML=sys.eq.map(e=>'<span class="m">'+e+'</span>').join('');
+  $('#scNote').textContent=sys.note;
+  $('#sceneCap').innerHTML=sys.cap;
+  buildParams(); recompute(); S.u=0; render();
+}
+
+/* ---------- colours & canvas helpers ---------- */
+let C={};
+function readColors(){
+  const cs=getComputedStyle(document.documentElement),g=n=>cs.getPropertyValue(n).trim();
+  C={stage:g('--stage'),ink:g('--ink'),muted:g('--muted'),grid:g('--grid'),axis:g('--axis'),line:g('--line'),
+     nat:g('--c-nat'),eq:g('--c-eq'),band:g('--c-band'),spring:g('--c-spring'),comp:g('--c-comp'),
+     block:g('--c-block'),curve:g('--c-curve'),wall:g('--c-wall'),accent:g('--accent')};
+}
+const sc=$('#scene'), sx=sc.getContext('2d'), gc=$('#graph'), gx=gc.getContext('2d');
+let SW=0,SH=0,GW=0,GH=0;
+function size(c,cx){const r=c.getBoundingClientRect(),d=window.devicePixelRatio||1;
+  c.width=Math.max(1,Math.round(r.width*d));c.height=Math.max(1,Math.round(r.height*d));cx.setTransform(d,0,0,d,0,0);return [r.width,r.height];}
+function resize(){[SW,SH]=size(sc,sx);[GW,GH]=size(gc,gx);render();}
+function mlabel(cx,txt,x,y,col,size,align,bold){
+  size=size||15; align=align||'center';
+  const [base,sub]=txt.split('_');
+  const f1=(bold?'600 ':'')+size+"px 'STIX Two Text','Cambria Math',serif", f2=(bold?'600 ':'')+Math.round(size*0.72)+"px 'STIX Two Text','Cambria Math',serif";
+  cx.save(); cx.direction='ltr'; cx.textBaseline='middle'; cx.textAlign='left';
+  cx.font=f1; const w1=cx.measureText(base).width; cx.font=f2; const w2=sub?cx.measureText(sub).width:0;
+  const x0= align==='center'? x-(w1+w2)/2 : align==='right'? x-w1-w2 : x;
+  cx.lineWidth=4; cx.strokeStyle=C.stage; cx.lineJoin='round'; cx.fillStyle=col;
+  cx.font=f1; cx.strokeText(base,x0,y); cx.fillText(base,x0,y);
+  if(sub){cx.font=f2; cx.strokeText(sub,x0+w1,y+size*0.3); cx.fillText(sub,x0+w1,y+size*0.3);}
+  cx.restore();
+}
+function hlabel(cx,txt,x,y,col,size,align){
+  cx.save(); cx.direction='rtl'; cx.textAlign=align||'center'; cx.textBaseline='middle';
+  cx.font='600 '+(size||12)+"px 'Assistant','Segoe UI',Arial,sans-serif";
+  cx.lineWidth=4; cx.strokeStyle=C.stage; cx.lineJoin='round'; cx.strokeText(txt,x,y);
+  cx.fillStyle=col; cx.fillText(txt,x,y); cx.restore();
+}
+function numText(cx,txt,x,y,col,align){cx.save();cx.direction='ltr';cx.textAlign=align;cx.textBaseline='middle';
+  cx.font="12px 'STIX Two Text',serif";cx.fillStyle=col;cx.fillText(txt,x,y);cx.restore();}
+function arrow(cx,x1,y1,x2,y2,col,w){
+  const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy); if(L<2)return;
+  const ux=dx/L,uy=dy/L,hs=Math.min(6+w*1.6,L*0.5),hw=hs*0.55;
+  cx.save(); cx.strokeStyle=col; cx.fillStyle=col; cx.lineWidth=w; cx.lineCap='round';
+  cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2-ux*hs*0.8,y2-uy*hs*0.8); cx.stroke();
+  cx.beginPath(); cx.moveTo(x2,y2); cx.lineTo(x2-ux*hs-uy*hw,y2-uy*hs+ux*hw); cx.lineTo(x2-ux*hs+uy*hw,y2-uy*hs-ux*hw); cx.closePath(); cx.fill();
+  cx.restore();
+}
+function dashLine(cx,x1,y1,x2,y2,col,w,dash){cx.save();cx.strokeStyle=col;cx.lineWidth=w||1.5;cx.setLineDash(dash||[6,4]);cx.beginPath();cx.moveTo(x1,y1);cx.lineTo(x2,y2);cx.stroke();cx.restore();}
+function spring(cx,ax,ay,bx,by,col){
+  const dx=bx-ax,dy=by-ay,L=Math.hypot(dx,dy); if(L<2)return;
+  const ux=dx/L,uy=dy/L,nx=-uy,ny=ux,lead=Math.min(8,L*0.12),n=24,amp=8,seg=(L-2*lead)/n;
+  cx.save(); cx.beginPath(); cx.moveTo(ax,ay); cx.lineTo(ax+ux*lead,ay+uy*lead);
+  for(let i=1;i<=n;i++){const s=lead+seg*(i-0.5),sd=(i%2?1:-1)*amp; cx.lineTo(ax+ux*s+nx*sd,ay+uy*s+ny*sd);}
+  cx.lineTo(bx-ux*lead,by-uy*lead); cx.lineTo(bx,by);
+  cx.strokeStyle=col; cx.lineWidth=1.8; cx.lineJoin='round'; cx.stroke(); cx.restore();
+}
+function hatch(cx,x1,y1,x2,y2,side){ // wall line with hatching on one side (side = unit normal)
+  cx.save(); cx.strokeStyle=C.wall; cx.lineWidth=2; cx.beginPath(); cx.moveTo(x1,y1); cx.lineTo(x2,y2); cx.stroke();
+  cx.lineWidth=1; const L=Math.hypot(x2-x1,y2-y1), ux=(x2-x1)/L, uy=(y2-y1)/L;
+  for(let s=4;s<L;s+=8){const px=x1+ux*s,py=y1+uy*s; cx.beginPath(); cx.moveTo(px,py); cx.lineTo(px+side[0]*7+ux*5,py+side[1]*7+uy*5); cx.stroke();}
+  cx.restore();
+}
+const springCol=st=> st<-0.05? C.comp : C.spring;
+
+/* ---------- render ---------- */
+function render(){
+  if(!M||!SW)return;
+  const t=S.u*M.tEnd;
+  drawScene(t); drawGraph(t);
+  const x=xAt(t), v=vAt(t), a=-M.w*M.w*(x-M.xeq);
+  $('#now').innerHTML=
+    '<span><span class="m">x</span></span><span class="n">'+fmt(x)+' <span class="dim">ס"מ</span></span>'+
+    '<span><span class="m">v</span></span><span class="n">'+fmt(v)+' <span class="dim">ס"מ/ש\'</span></span>'+
+    '<span><span class="m">a</span></span><span class="n">'+fmt(a)+' <span class="dim">ס"מ/ש²</span></span>';
+  $('#time').value=Math.round(S.u*1000);
+  $('#tval').textContent='t = '+t.toFixed(2)+" ש'";
+  $('#play').textContent=S.playing?'עצור':'הפעל';
+}
+
+/* map x (cm) to a distance along the spring axis, in px from the anchor */
+function axisMap(usable,Dmin){
+  const s=usable/(M.hi-M.lo);
+  return x=>Dmin+(x-M.lo)*s;
+}
+
+function drawScene(t){
+  const cx=sx, W=SW, H=SH, sys=SYS[S.id], x=xAt(t), B=44;
+  cx.fillStyle=C.stage; cx.fillRect(0,0,W,H);
+  if(sys.orient==='h'){
+    const wallX=22, floorY=Math.round(H*0.58), D=axisMap(W-wallX-24-B-30,30), X=v=>wallX+D(v);
+    // band and markers
+    cx.fillStyle=C.band; cx.fillRect(X(M.xeq-M.A),floorY-B-14,X(M.xeq+M.A)-X(M.xeq-M.A),B+14);
+    const same=Math.abs(X(0)-X(M.xeq))<3;
+    dashLine(cx,X(0),floorY-B-34,X(0),floorY+16,C.nat,1.5);
+    if(!same) dashLine(cx,X(M.xeq),floorY-B-34,X(M.xeq),floorY+16,C.eq,1.5);
+    if(same){ hlabel(cx,'רפיון ושיווי משקל',X(0),floorY-B-46,C.eq,12); }
+    else { hlabel(cx,'רפיון',X(0),floorY-B-46,C.nat,12); hlabel(cx,'שיווי משקל',X(M.xeq),floorY-B-62,C.eq,12); }
+    // wall, floor, spring, block
+    hatch(cx,wallX,floorY-B-24,wallX,floorY,[-1,0]);
+    cx.strokeStyle=C.wall; cx.lineWidth=2; cx.beginPath(); cx.moveTo(wallX,floorY); cx.lineTo(W-8,floorY); cx.stroke();
+    spring(cx,wallX,floorY-B/2,X(x),floorY-B/2,springCol(x));
+    cx.fillStyle=C.block; cx.fillRect(X(x),floorY-B,B,B); cx.strokeStyle=C.ink; cx.lineWidth=1.5; cx.strokeRect(X(x),floorY-B,B,B);
+    mlabel(cx,'m',X(x)+B/2,floorY-B/2,C.ink,15);
+    arrow(cx,X(0),floorY+30,X(0)+46,floorY+30,C.muted,1.6); mlabel(cx,'x',X(0)+56,floorY+30,C.muted,15);
+    return;
+  }
+  if(sys.orient==='v'){
+    const cxm=Math.round(W*0.42), top= sys.elev? 34 : 26, bottom=H-16;
+    const D=axisMap(bottom-top-B-26,26), Y=v=>top+D(v);
+    if(sys.elev){
+      cx.strokeStyle=C.wall; cx.lineWidth=2; cx.strokeRect(cxm-78,top-12,156,bottom-top+10);
+      const p=P[S.id];
+      if(Math.abs(p.a0)>0.01){ const yc=(top+bottom)/2, d=p.a0>0?-1:1; arrow(cx,cxm-104,yc-d*26,cxm-104,yc+d*26,C.ink,2.2); mlabel(cx,'a_0',cxm-104,yc+d*40,C.ink,15,'center',true); }
+    }
+    hatch(cx,cxm-60,top,cxm+60,top,[0,-1]);
+    // band and markers
+    cx.fillStyle=C.band; cx.fillRect(cxm-60,Y(M.xeq-M.A),120,Y(M.xeq+M.A)-Y(M.xeq-M.A)+B);
+    const lx1=cxm-64, lx2=cxm+64, same=Math.abs(Y(0)-Y(M.xeq))<3;
+    if(M.xeqOld!=null && Math.abs(Y(M.xeqOld)-Y(M.xeq))>3){ dashLine(cx,lx1,Y(M.xeqOld),lx2,Y(M.xeqOld),C.muted,1.2,[3,4]); hlabel(cx,'לפני ההאצה',lx2+6,Y(M.xeqOld),C.muted,11,'left'); }
+    dashLine(cx,lx1,Y(0),lx2,Y(0),C.nat,1.5);
+    if(!same) dashLine(cx,lx1,Y(M.xeq),lx2,Y(M.xeq),C.eq,1.5);
+    if(same) hlabel(cx,'רפיון ושיווי משקל',lx2+6,Y(0),C.eq,12,'left');
+    else { hlabel(cx,'רפיון',lx2+6,Y(0),C.nat,12,'left'); hlabel(cx,'שיווי משקל',lx2+6,Y(M.xeq),C.eq,12,'left'); }
+    spring(cx,cxm,top,cxm,Y(x),springCol(x));
+    cx.fillStyle=C.block; cx.fillRect(cxm-B/2,Y(x),B,B); cx.strokeStyle=C.ink; cx.lineWidth=1.5; cx.strokeRect(cxm-B/2,Y(x),B,B);
+    mlabel(cx,'m',cxm,Y(x)+B/2,C.ink,15);
+    if(!sys.elev){ arrow(cx,cxm-84,Y(0),cxm-84,Y(0)+44,C.muted,1.6); mlabel(cx,'x',cxm-84,Y(0)+56,C.muted,15); }
+    return;
+  }
+  // incline: x along the slope, downhill to the right
+  const p=P[S.id], al=p.al*PI/180, ca=Math.cos(al), sa=Math.sin(al);
+  const Lt=Math.min((W-36)/ca, sa>0.02? (H-110)/sa : 1e9, 520);
+  const x0=(W-Lt*ca)/2, y0=(H-Lt*sa)/2+30;
+  const u=[ca,sa], n=[sa,-ca];
+  const Pt=(s,h)=>[x0+u[0]*s+n[0]*h, y0+u[1]*s+n[1]*h];
+  const D=axisMap(Lt-B-2*26,26);
+  // slope body
+  cx.save(); cx.fillStyle=C.grid; cx.beginPath(); const a1=Pt(0,0), a2=Pt(Lt,0);
+  cx.moveTo(a1[0],a1[1]); cx.lineTo(a2[0],a2[1]); cx.lineTo(a1[0],a2[1]); cx.closePath(); cx.fill();
+  cx.strokeStyle=C.wall; cx.lineWidth=2; cx.beginPath(); cx.moveTo(a1[0],a1[1]); cx.lineTo(a2[0],a2[1]); cx.stroke(); cx.restore();
+  if(p.al>0){ cx.save(); cx.strokeStyle=C.nat; cx.lineWidth=1.3; cx.beginPath(); cx.arc(a2[0],a2[1],28,PI,PI+al); cx.stroke(); cx.restore(); mlabel(cx,'α',a2[0]-40,a2[1]-9,C.nat,14); }
+  // end walls (perpendicular to the slope)
+  const w1a=Pt(0,0), w1b=Pt(0,B+18), w2a=Pt(Lt,0), w2b=Pt(Lt,B+18);
+  hatch(cx,w1a[0],w1a[1],w1b[0],w1b[1],[-u[0],-u[1]]);
+  hatch(cx,w2a[0],w2a[1],w2b[0],w2b[1],[u[0],u[1]]);
+  // band
+  const b1=D(M.xeq-M.A), b2=D(M.xeq+M.A)+B, q1=Pt(b1,0), q2=Pt(b2,0), q3=Pt(b2,B+10), q4=Pt(b1,B+10);
+  cx.fillStyle=C.band; cx.beginPath(); cx.moveTo(q1[0],q1[1]); cx.lineTo(q2[0],q2[1]); cx.lineTo(q3[0],q3[1]); cx.lineTo(q4[0],q4[1]); cx.closePath(); cx.fill();
+  // markers at the block's upper edge
+  const mk=(v,col)=>{ const a=Pt(D(v),-6), b=Pt(D(v),B+30); dashLine(cx,a[0],a[1],b[0],b[1],col,1.5); return Pt(D(v),B+42); };
+  const same=Math.abs(D(0)-D(M.xeq))<3;
+  const l0=mk(0,C.nat); let le=l0; if(!same) le=mk(M.xeq,C.eq);
+  if(same) hlabel(cx,'רפיון ושיווי משקל',l0[0],l0[1],C.eq,12);
+  else { hlabel(cx,'רפיון',l0[0]-14,l0[1],C.nat,12); hlabel(cx,'שיווי משקל',le[0]+18,le[1]-12,C.eq,12); }
+  // springs and block
+  const s1=D(x), mid=B/2;
+  const sa1=Pt(0,mid), sb1=Pt(s1,mid), sa2=Pt(s1+B,mid), sb2=Pt(Lt,mid);
+  spring(cx,sa1[0],sa1[1],sb1[0],sb1[1],springCol(x));
+  spring(cx,sa2[0],sa2[1],sb2[0],sb2[1],springCol(-x));
+  const k1p=Pt(s1/2,mid+20), k2p=Pt((s1+B+Lt)/2,mid+20);
+  mlabel(cx,'k_1',k1p[0],k1p[1],C.muted,14); mlabel(cx,'k_2',k2p[0],k2p[1],C.muted,14);
+  cx.save(); const c0=Pt(s1+B/2,B/2); cx.translate(c0[0],c0[1]); cx.rotate(al);
+  cx.fillStyle=C.block; cx.fillRect(-B/2,-B/2,B,B); cx.strokeStyle=C.ink; cx.lineWidth=1.5; cx.strokeRect(-B/2,-B/2,B,B); cx.restore();
+  mlabel(cx,'m',c0[0],c0[1],C.ink,15);
+  const xa=Pt(D(0),-26), xb=Pt(D(0)+46,-26); arrow(cx,xa[0],xa[1],xb[0],xb[1],C.muted,1.6); const xl=Pt(D(0)+58,-26); mlabel(cx,'x',xl[0],xl[1],C.muted,15);
+}
+
+function drawGraph(t){
+  const cx=gx, W=GW, H=GH, down=SYS[S.id].down;
+  cx.fillStyle=C.stage; cx.fillRect(0,0,W,H);
+  const tp=18, bt=30, h=H-tp-bt;
+  const Wc=Math.max(90,Math.min(W*0.4,210)), gl=Wc+44, gr=W-14, gw=gr-gl;
+  if(gw<40||h<40) return;
+  // shared vertical scale for the circle and the graph
+  const padSpan=(M.hi-M.lo)*1.24, sy=Math.min(h/padSpan, M.A>1e-6? (Wc-18)/(2*M.A) : 1e9);
+  const mid=(M.hi+M.lo)/2, midY=tp+h/2;
+  const Y= down? v=>midY+(v-mid)*sy : v=>midY-(v-mid)*sy;
+  const X=tt=>gl+tt/M.tEnd*gw;
+  const visLo=mid-(h/2)/sy, visHi=mid+(h/2)/sy;
+  // grid
+  cx.lineWidth=1;
+  for(const v of ticks(visLo,visHi,6)){ const y=Y(v); cx.strokeStyle=C.grid; cx.beginPath(); cx.moveTo(gl,y); cx.lineTo(gr,y); cx.stroke(); numText(cx,fmt(v),gl-6,y,C.muted,'right'); }
+  for(let k=0;k<=3;k++){ const xx=X(k*M.T); cx.strokeStyle=C.grid; cx.beginPath(); cx.moveTo(xx,tp); cx.lineTo(xx,tp+h); cx.stroke(); mlabel(cx,k===0?'0':(k===1?'T':k+'T'),xx,tp+h+14,C.muted,13); }
+  cx.strokeStyle=C.axis; cx.beginPath(); cx.moveTo(gl,tp); cx.lineTo(gl,tp+h); cx.stroke();
+  mlabel(cx,down?'x ↓':'x',gl+12,tp+2,C.muted,14,'left');
+  // band and reference lines
+  cx.fillStyle=C.band; const yb1=Y(M.xeq+M.A), yb2=Y(M.xeq-M.A); cx.fillRect(gl,Math.min(yb1,yb2),gw,Math.abs(yb2-yb1));
+  const same=Math.abs(Y(0)-Y(M.xeq))<3;
+  dashLine(cx,8,Y(0),gr,Y(0),C.nat,1.4);
+  if(!same) dashLine(cx,8,Y(M.xeq),gr,Y(M.xeq),C.eq,1.4);
+  // reference circle
+  const ccx=Wc/2+6, ccy=Y(M.xeq), R=M.A*sy;
+  const pt=th=>[ccx-R*Math.sin(th), down? ccy+R*Math.cos(th) : ccy-R*Math.cos(th)];
+  if(R>1){
+    cx.save(); cx.strokeStyle=C.curve; cx.globalAlpha=0.5; cx.lineWidth=1.3; cx.beginPath(); cx.arc(ccx,ccy,R,0,2*PI); cx.stroke(); cx.restore();
+    const ref=pt(0); dashLine(cx,ccx,ccy,ref[0],ref[1],C.muted,1.2,[3,3]);
+    // initial angle φ
+    const p0=pt(M.ph);
+    cx.save(); cx.strokeStyle=C.muted; cx.lineWidth=1.2; cx.setLineDash([2,3]); cx.beginPath(); cx.moveTo(ccx,ccy); cx.lineTo(p0[0],p0[1]); cx.stroke(); cx.restore();
+    if(Math.abs(M.ph)>0.05){
+      const r0=Math.min(R*0.38,26); cx.save(); cx.strokeStyle=C.ink; cx.lineWidth=1.2; cx.beginPath();
+      const N=30; for(let i=0;i<=N;i++){ const th=M.ph*i/N, q=[ccx-r0*Math.sin(th), down? ccy+r0*Math.cos(th) : ccy-r0*Math.cos(th)]; i?cx.lineTo(q[0],q[1]):cx.moveTo(q[0],q[1]); }
+      cx.stroke(); cx.restore();
+      const thm=M.ph/2, ql=[ccx-(r0+11)*Math.sin(thm), down? ccy+(r0+11)*Math.cos(thm) : ccy-(r0+11)*Math.cos(thm)];
+      mlabel(cx,'φ',ql[0],ql[1],C.ink,14,'center',true);
+    }
+  }
+  // curve: faint for the whole window, solid up to t
+  const N=360;
+  cx.save(); cx.lineJoin='round';
+  cx.strokeStyle=C.curve; cx.globalAlpha=0.28; cx.lineWidth=2; cx.beginPath();
+  for(let i=0;i<=N;i++){ const tt=M.tEnd*i/N; i?cx.lineTo(X(tt),Y(xAt(tt))):cx.moveTo(X(tt),Y(xAt(tt))); } cx.stroke();
+  cx.globalAlpha=1; cx.lineWidth=2.4; cx.beginPath();
+  const n2=Math.max(1,Math.round(N*t/M.tEnd));
+  for(let i=0;i<=n2;i++){ const tt=t*i/n2; i?cx.lineTo(X(tt),Y(xAt(tt))):cx.moveTo(X(tt),Y(xAt(tt))); } cx.stroke();
+  cx.restore();
+  // labels of the reference lines
+  if(same) hlabel(cx,'רפיון ושיווי משקל',gr-2,Y(0)-10,C.eq,12,'right');
+  else { hlabel(cx,'רפיון',gr-2,Y(0)-10,C.nat,12,'right'); hlabel(cx,'שיווי משקל',gr-2,Y(M.xeq)-10,C.eq,12,'right'); }
+  // current phasor and projection
+  const xn=xAt(t), yn=Y(xn), th=M.w*t+M.ph;
+  if(R>1){
+    const pn=pt(th);
+    cx.save(); cx.strokeStyle=C.curve; cx.lineWidth=2.4; cx.beginPath(); cx.moveTo(ccx,ccy); cx.lineTo(pn[0],pn[1]); cx.stroke(); cx.restore();
+    dashLine(cx,pn[0],pn[1],X(t),yn,C.curve,1,[2,3]);
+    cx.beginPath(); cx.arc(pn[0],pn[1],5,0,2*PI); cx.fillStyle=C.curve; cx.fill();
+    { const mx=(ccx+pn[0])/2, my=(ccy+pn[1])/2, dx=pn[0]-ccx, dy=pn[1]-ccy, L=Math.hypot(dx,dy)||1; if(R>26) mlabel(cx,'A',mx-dy/L*11,my+dx/L*11,C.curve,14,'center',true); }
+  }
+  cx.beginPath(); cx.arc(ccx,ccy,3,0,2*PI); cx.fillStyle=C.eq; cx.fill();
+  cx.save(); cx.strokeStyle=C.ink; cx.lineWidth=1; cx.setLineDash([3,3]); cx.beginPath(); cx.moveTo(X(t),tp); cx.lineTo(X(t),tp+h); cx.stroke(); cx.restore();
+  cx.beginPath(); cx.arc(X(t),yn,5,0,2*PI); cx.fillStyle=C.curve; cx.fill(); cx.lineWidth=1.5; cx.strokeStyle=C.stage; cx.stroke();
+}
+
+/* ---------- playback (loops: the window is exactly three periods) ---------- */
+let last=0,raf=0;
+function stop(){S.playing=false;cancelAnimationFrame(raf);}
+function tick(ts){
+  if(!S.playing)return;
+  const dt=last?Math.min(0.05,(ts-last)/1000):0; last=ts;
+  S.u=(S.u+dt*S.speed/M.tEnd)%1;
+  render(); raf=requestAnimationFrame(tick);
+}
+$('#play').addEventListener('click',()=>{ if(S.playing){stop();render();return;} S.playing=true; last=0; render(); raf=requestAnimationFrame(tick); });
+$('#time').addEventListener('input',e=>{stop();S.u=+e.target.value/1000;render();});
+$('#speed').addEventListener('change',e=>{S.speed=+e.target.value;});
+
+readColors();
+const mq=matchMedia('(prefers-color-scheme: dark)'), onTheme=()=>{readColors();render();};
+mq.addEventListener?mq.addEventListener('change',onTheme):mq.addListener(onTheme);
+new MutationObserver(onTheme).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+new ResizeObserver(()=>resize()).observe($('#sceneBox'));
+new ResizeObserver(()=>resize()).observe($('#graphBox'));
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>render());
+
+buildTabs();
+const fromHash=()=>{const h=location.hash.slice(1);setSys(SYS[h]?h:'horizontal');};
+window.addEventListener('hashchange',fromHash);
+fromHash(); resize();
+})();
+</script>
+</body>
+</html>
