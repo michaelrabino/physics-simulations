@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>כדור על דיסקה מסתובבת</title>
+<style>
+:root{
+  --bg:#f5f4ef; --panel:#ffffff; --ink:#1c2230; --muted:#5f6778; --line:#dcdfe6;
+  --accent:#2d5bd0; --accent-ink:#ffffff; --soft:#eef2fb;
+  --disk:#e6ebf5; --disk-line:#b7c2d8; --axis:#98a1b3;
+  --ball:#d6336c; --vel:#1f9d55; --cor:#e8590c; --cen:#7048e8; --acc:#1c2230; --unit:#7b8494;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12151c; --panel:#1b1f29; --ink:#e6e9ef; --muted:#9aa3b5; --line:#2e3442;
+    --accent:#7aa2ff; --accent-ink:#0f1320; --soft:#222a3b;
+    --disk:#232a39; --disk-line:#435069; --axis:#5f6a80;
+    --ball:#ff6b9a; --vel:#51cf66; --cor:#ff922b; --cen:#b197fc; --acc:#e6e9ef; --unit:#adb5bd;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12151c; --panel:#1b1f29; --ink:#e6e9ef; --muted:#9aa3b5; --line:#2e3442;
+  --accent:#7aa2ff; --accent-ink:#0f1320; --soft:#222a3b;
+  --disk:#232a39; --disk-line:#435069; --axis:#5f6a80;
+  --ball:#ff6b9a; --vel:#51cf66; --cor:#ff922b; --cen:#b197fc; --acc:#e6e9ef; --unit:#adb5bd;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:"Segoe UI","Noto Sans Hebrew",Arial,sans-serif;line-height:1.55;font-size:15px}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.55rem;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.views{display:grid;grid-template-columns:1fr 1fr;gap:14px;direction:ltr}
+.views .card{direction:rtl}
+.views h2{font-size:1rem;margin:0 0 2px}
+.views .note{color:var(--muted);font-size:.85rem;margin:0 0 6px}
+canvas{width:100%;aspect-ratio:1/1;display:block;border-radius:8px;touch-action:none;direction:ltr}
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin:10px 2px 0;font-size:.88rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:24px;height:0;border-top:3px solid}
+.sw.dash{border-top-style:dashed}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media (max-width:820px){.views,.grid2{grid-template-columns:1fr}}
+h3{font-size:1rem;margin:2px 0 10px}
+.row{display:grid;grid-template-columns:150px 1fr 70px;align-items:center;gap:10px;margin:6px 0}
+.row label{font-size:.92rem}
+.row output{font-variant-numeric:tabular-nums;direction:ltr;text-align:left;font-size:.9rem}
+input[type=range]{width:100%;accent-color:var(--accent);direction:ltr}
+.checks{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.checks label{display:flex;align-items:center;gap:8px;font-size:.92rem}
+input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+button{font:inherit;font-size:.9rem;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);min-width:90px}
+select{font:inherit;font-size:.9rem;background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 8px}
+.timebar{display:grid;grid-template-columns:auto auto 1fr 70px;gap:10px;align-items:center;margin-top:12px}
+.timebar output{direction:ltr;text-align:left;font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+td{padding:4px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.v{direction:ltr;text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap}
+.m{direction:ltr;unicode-bidi:isolate;font-family:"Cambria Math","Times New Roman",serif;font-style:italic;white-space:nowrap}
+.hl{background:var(--soft)}
+.small{font-size:.85rem;color:var(--muted)}
+details{margin-top:14px}
+summary{cursor:pointer;font-weight:600}
+details ul,details ol{margin:8px 0;padding-inline-start:22px}
+details li{margin:4px 0}
+.sep{height:1px;background:var(--line);margin:10px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>כדור על דיסקה מסתובבת</h1>
+  <p class="sub">אותה תנועה משתי מערכות ייחוס: מערכת אינרציאלית <span class="m">S</span> ומערכת <span class="m">S′</span> שמסתובבת עם הדיסקה</p>
+
+  <div class="views">
+    <div class="card">
+      <h2>מערכת אינרציאלית <span class="m">S</span></h2>
+      <p class="note">אין כוחות במישור – הכדור נע בקו ישר, והדיסקה מסתובבת מתחתיו</p>
+      <canvas id="cvI"></canvas>
+    </div>
+    <div class="card">
+      <h2>מערכת מסתובבת <span class="m">S′</span> (הצופה על הדיסקה)</h2>
+      <p class="note">הדיסקה עומדת, והמסלול מתעקם בגלל הכוחות המדומים</p>
+      <canvas id="cvR"></canvas>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw" style="border-color:var(--vel)"></i>מהירות</span>
+    <span><i class="sw dash" style="border-color:var(--cor)"></i>תאוצת קוריוליס <span class="m">−2ω×v′</span></span>
+    <span><i class="sw" style="border-color:var(--cen)"></i>תאוצה צנטריפוגלית <span class="m">ω²ρ′</span></span>
+    <span><i class="sw" style="border-color:var(--acc)"></i>תאוצה <span class="m">a′</span></span>
+    <span><i class="sw" style="border-color:var(--unit)"></i>וקטורי יחידה</span>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="timebar">
+      <button id="play" class="primary">▶ הפעל</button>
+      <button id="reset">↺ מההתחלה</button>
+      <input type="range" id="time" min="0" max="1" step="0.001" value="0" aria-label="זמן">
+      <output id="timeVal">0.00 s</output>
+    </div>
+    <div class="btns" style="margin-top:10px;align-items:center">
+      <span class="small">מהירות הצגה:</span>
+      <select id="speed">
+        <option value="0.25">×0.25</option>
+        <option value="0.5">×0.5</option>
+        <option value="1" selected>×1</option>
+        <option value="2">×2</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>פרמטרים</h3>
+      <div class="btns">
+        <button data-preset="book">זריקה מהמרכז</button>
+        <button data-preset="rim">זריקה מהשפה אל המרכז</button>
+        <button data-preset="restI">כדור נח במערכת האינרציאלית</button>
+        <button data-preset="restR">כדור שמשוחרר מהדיסקה</button>
+      </div>
+      <div class="sep"></div>
+      <div class="row"><label for="omega">מהירות זוויתית <span class="m">ω</span></label><input type="range" id="omega" min="-3" max="3" step="0.05" value="1"><output id="omegaV"></output></div>
+      <div class="row"><label for="u">גודל מהירות הזריקה</label><input type="range" id="u" min="0" max="1.5" step="0.05" value="0.5"><output id="uV"></output></div>
+      <div class="row"><label for="r0">מרחק נקודת הזריקה מהמרכז <span class="m">r₀</span></label><input type="range" id="r0" min="0" max="0.9" step="0.05" value="0"><output id="r0V"></output></div>
+      <div class="row"><label for="alpha">כיוון הזריקה ביחס לכיוון הרדיאלי</label><input type="range" id="alpha" min="-180" max="180" step="5" value="0"><output id="alphaV"></output></div>
+      <div class="checks">
+        <label><input type="checkbox" id="rel"> מהירות הזריקה נמדדת ביחס לדיסקה (הזורק עומד על הדיסקה)</label>
+      </div>
+      <p class="small">רדיוס הדיסקה 1 m. <span class="m">ω &gt; 0</span> פירושו סיבוב נגד כיוון השעון במבט מלמעלה (<span class="m">ω = ωẑ</span>). המצב ההתחלתי: שתי המערכות מתלכדות ב־<span class="m">t = 0</span>.</p>
+      <div class="sep"></div>
+      <h3>תצוגה</h3>
+      <div class="checks">
+        <label><input type="checkbox" id="showVel" checked> חיצי מהירות</label>
+        <label><input type="checkbox" id="showForces" checked> תאוצת קוריוליס ותאוצה צנטריפוגלית בנקודה הנוכחית</label>
+        <label><input type="checkbox" id="showPath"> כיווני התאוצות לאורך המסלול</label>
+        <label><input type="checkbox" id="showUnits"> וקטורי יחידה <span class="m">ρ̂′, θ̂′</span> ופירוק התאוצה</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>מדידות הצופה המסתובב</h3>
+      <table>
+        <tr><td>מקום</td><td class="v" id="oPos"></td></tr>
+        <tr><td>מהירות <span class="m">v′</span></td><td class="v" id="oVel"></td></tr>
+        <tr><td>תאוצת קוריוליס <span class="m">−2ω×v′</span></td><td class="v" id="oCor"></td></tr>
+        <tr><td>תאוצה צנטריפוגלית <span class="m">ω²ρ′</span></td><td class="v" id="oCen"></td></tr>
+        <tr class="hl"><td>תאוצה כוללת <span class="m">a′</span></td><td class="v" id="oAcc"></td></tr>
+      </table>
+      <p class="small">הרכיבים נתונים בבסיס <span class="m">(ρ̂′, θ̂′)</span> של המערכת המסתובבת, ביחידות m, m/s, m/s².</p>
+
+      <div id="decompBox">
+        <div class="sep"></div>
+        <h3>למה <span class="m">a′<sub>θ</sub> ≠ dv′<sub>θ</sub>/dt</span>?</h3>
+        <p class="small" style="margin-top:-4px">וקטורי היחידה מסתובבים עם הכדור בקצב <span class="m">θ̇′</span>, ולכן לכל רכיב של התאוצה יש שני חלקים: שינוי בגודל הרכיב, ותרומה מהסתובבות וקטור היחידה.</p>
+        <table>
+          <tr><td></td><td class="v small">סה״כ = שינוי הרכיב + סיבוב וקטור היחידה</td></tr>
+          <tr><td><span class="m">a′<sub>ρ</sub> = dv′<sub>ρ</sub>/dt − v′<sub>θ</sub>θ̇′</span></td><td class="v" id="dRho"></td></tr>
+          <tr><td><span class="m">a′<sub>θ</sub> = dv′<sub>θ</sub>/dt + v′<sub>ρ</sub>θ̇′</span></td><td class="v" id="dTh"></td></tr>
+        </table>
+      </div>
+
+      <div id="bookBox">
+        <div class="sep"></div>
+        <h3>השוואה לפתרון האנליטי (זריקה מהמרכז)</h3>
+        <table>
+          <tr><td></td><td class="v small">לפי הנוסחה</td><td class="v small">בסימולציה</td></tr>
+          <tr><td><span class="m">v′<sub>θ</sub> = −ωv<sub>ρ</sub>t</span></td><td class="v" id="bVth"></td><td class="v" id="bVthS"></td></tr>
+          <tr><td><span class="m">θ′ − θ′₀ = −ωt</span></td><td class="v" id="bTh"></td><td class="v" id="bThS"></td></tr>
+          <tr><td><span class="m">a′ = −ω²v<sub>ρ</sub>t ρ̂′ − 2ωv<sub>ρ</sub> θ̂′</span></td><td class="v" id="bAcc"></td><td class="v" id="bAccS"></td></tr>
+        </table>
+        <p class="small">כאן <span class="m">v<sub>ρ</sub></span> היא המהירות (הקבועה) של הכדור במערכת האינרציאלית.</p>
+      </div>
+    </div>
+  </div>
+
+  <details class="card">
+    <summary>מה רואים כאן?</summary>
+    <ul>
+      <li>בשני החלונות זו אותה תנועה בדיוק. המהירויות קשורות זו לזו לפי <span class="m">v = v′ + ω×r</span>.</li>
+      <li>במערכת <span class="m">S</span> לא פועלים כוחות במישור, ולכן הכדור נע בקו ישר. הצופה על הדיסקה רואה מסלול מעוקם ומסביר אותו בשני כוחות מדומים: כוח קוריוליס <span class="m">−2mω×v′</span>, שמאונך למהירות שלו, והכוח הצנטריפוגלי <span class="m">mω²ρ′</span>, שמכוון החוצה מהציר.</li>
+      <li>הקו המקווקו במערכת המסתובבת הוא ציר <span class="m">x</span> של המערכת האינרציאלית, שנראה מסתובב בכיוון ההפוך.</li>
+      <li>המצב "וקטורי יחידה ופירוק התאוצה" מראה למה התאוצה המשיקית אינה הנגזרת של המהירות המשיקית: גם וקטורי היחידה משתנים בזמן.</li>
+    </ul>
+  </details>
+  <details class="card">
+    <summary>שאלות לחקירה</summary>
+    <ol>
+      <li>בזריקה מהמרכז: איך משתנה צורת המסלול במערכת המסתובבת כשמגדילים את <span class="m">ω</span>? וכשמגדילים את מהירות הזריקה?</li>
+      <li>כדור שנח במערכת האינרציאלית נראה לצופה המסתובב נע במעגל. איזה כוח שקול גורם לתנועה המעגלית? השוו בין גודל כוח קוריוליס לגודל הכוח הצנטריפוגלי.</li>
+      <li>זורק שעומד על שפת הדיסקה מכוון בדיוק אל המרכז. האם הכדור עובר דרך המרכז? לאן עליו לכוון כדי שיעבור דרכו?</li>
+      <li>מה קורה למסלול במערכת המסתובבת כשהופכים את כיוון הסיבוב (<span class="m">ω &lt; 0</span>)?</li>
+      <li>כדור שמשוחרר מהדיסקה (נח ביחס אליה): באיזה כיוון פועל עליו כוח קוריוליס ברגע השחרור? באיזה כיוון הוא מתחיל לנוע?</li>
+    </ol>
+  </details>
+</div>
+
+<script>
+(function(){
+const $ = id => document.getElementById(id);
+const R = 1, TMAX = 30;
+const P = {omega:1, u:0.5, alpha:0, r0:0, rel:false};
+let t = 0, playing = false, last = null, speed = 1;
+const show = {vel:true, forces:true, path:false, units:false};
+
+/* ---------- colors ---------- */
+const C = {};
+function readColors(){
+  const cs = getComputedStyle(document.documentElement);
+  ['panel','ink','muted','line','accent','disk','disk-line','axis','ball','vel','cor','cen','acc','unit']
+    .forEach(k => C[k] = cs.getPropertyValue('--'+k).trim());
+}
+readColors();
+try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readColors); }catch(e){}
+
+/* ---------- physics ---------- */
+function vI(){
+  const a = P.alpha*Math.PI/180;
+  let vx = P.u*Math.cos(a), vy = P.u*Math.sin(a);
+  if (P.rel) vy += P.omega*P.r0;          // ω ẑ × (r0 x̂) = ω r0 ŷ
+  return [vx, vy];
+}
+function tEnd(){
+  const [vx,vy] = vI(), x0 = P.r0;
+  const A = vx*vx+vy*vy, B = 2*x0*vx, Cc = x0*x0-R*R;
+  if (A < 1e-12) return TMAX;
+  return Math.min((-B+Math.sqrt(B*B-4*A*Cc))/(2*A), TMAX);
+}
+function state(tt){
+  const [vx,vy] = vI(), w = P.omega;
+  const x = P.r0+vx*tt, y = vy*tt;
+  const c = Math.cos(-w*tt), s = Math.sin(-w*tt);
+  const xp = c*x - s*y, yp = s*x + c*y;
+  const ux = vx + w*y, uy = vy - w*x;        // v − ω×r  (ω×r = ω(−y, x))
+  const vxp = c*ux - s*uy, vyp = s*ux + c*uy;
+  const corx = 2*w*vyp, cory = -2*w*vxp;      // −2 ω ẑ × v′
+  const cenx = w*w*xp, ceny = w*w*yp;         // ω² ρ′
+  const rho = Math.hypot(xp,yp);
+  let er, et;
+  if (rho > 1e-9){ er=[xp/rho, yp/rho]; }
+  else { const vm=Math.hypot(vxp,vyp); er = vm>1e-12 ? [vxp/vm, vyp/vm] : [1,0]; }
+  et = [-er[1], er[0]];
+  const pr = (v)=>[v[0]*er[0]+v[1]*er[1], v[0]*et[0]+v[1]*et[1]];
+  const thI = (P.r0<1e-9) ? Math.atan2(vy,vx) : Math.atan2(y,x);
+  const thp = thI - w*tt;
+  const thdot = rho>1e-9 ? (xp*vyp - yp*vxp)/(rho*rho) : NaN;
+  return {x,y,vx,vy,xp,yp,vxp,vyp,corx,cory,cenx,ceny,rho,er,et,pr,thp,thdot};
+}
+
+/* ---------- drawing helpers ---------- */
+function fit(cv){
+  const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio||1;
+  const W = Math.max(50, Math.round(r.width*dpr));
+  if (cv.width !== W){ cv.width = W; cv.height = W; }
+  const ctx = cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx, size:r.width};
+}
+function arrow(ctx,T,x,y,dx,dy,color,opt={}){
+  const [X0,Y0]=T(x,y), [X1,Y1]=T(x+dx,y+dy);
+  const L = Math.hypot(X1-X0,Y1-Y0); if (L < 3) return;
+  const ang = Math.atan2(Y1-Y0,X1-X0), hl = Math.min(opt.head||10, L*0.45);
+  ctx.save(); ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=opt.width||2.4; ctx.lineCap='round';
+  if (opt.dash) ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.moveTo(X0,Y0); ctx.lineTo(X1-hl*0.7*Math.cos(ang), Y1-hl*0.7*Math.sin(ang)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(X1,Y1);
+  ctx.lineTo(X1-hl*Math.cos(ang-0.42), Y1-hl*Math.sin(ang-0.42));
+  ctx.lineTo(X1-hl*Math.cos(ang+0.42), Y1-hl*Math.sin(ang+0.42)); ctx.closePath(); ctx.fill();
+  if (opt.label){
+    ctx.font = 'italic 14px "Times New Roman",serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(opt.label, X1+13*Math.cos(ang), Y1+13*Math.sin(ang));
+  }
+  ctx.restore();
+}
+function label(ctx,txt,X,Y,color,align='center',font='13px "Segoe UI",Arial,sans-serif'){
+  ctx.save(); ctx.fillStyle=color; ctx.font=font; ctx.direction=/[\u0590-\u05FF]/.test(txt)?'rtl':'ltr'; ctx.textAlign=align; ctx.textBaseline='middle'; ctx.fillText(txt,X,Y); ctx.restore();
+}
+function drawAxes(ctx,T,ang,names,color,dash){
+  ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=1; if(dash) ctx.setLineDash([5,5]);
+  for (let k=0;k<2;k++){
+    const a = ang + k*Math.PI/2, c=Math.cos(a), s=Math.sin(a);
+    const [x0,y0]=T(-1.1*c,-1.1*s), [x1,y1]=T(1.1*c,1.1*s);
+    ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y1); ctx.stroke();
+    if (names[k]){ const [lx,ly]=T(1.17*c,1.17*s); label(ctx,names[k],lx,ly,color,'center','italic 15px "Times New Roman",serif'); }
+  }
+  ctx.restore();
+}
+function drawDisk(ctx,T,s,phi){
+  const [cx,cy]=T(0,0);
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx,cy,R*s,0,2*Math.PI); ctx.fillStyle=C.disk; ctx.fill();
+  ctx.lineWidth=1.5; ctx.strokeStyle=C['disk-line']; ctx.stroke();
+  ctx.lineWidth=1;
+  for (let k=0;k<12;k++){
+    const a=phi+k*Math.PI/6, [x1,y1]=T(R*Math.cos(a),R*Math.sin(a));
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(x1,y1); ctx.stroke();
+  }
+  ctx.setLineDash([3,4]);
+  [0.5].forEach(f=>{ ctx.beginPath(); ctx.arc(cx,cy,f*R*s,0,2*Math.PI); ctx.stroke(); });
+  ctx.restore();
+}
+function drawThrower(ctx,T,phi){
+  const [X,Y]=T(P.r0*Math.cos(phi), P.r0*Math.sin(phi));
+  ctx.save(); ctx.fillStyle=C.accent; ctx.strokeStyle=C.panel; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.rect(X-6,Y-6,12,12); ctx.fill(); ctx.stroke(); ctx.restore();
+}
+function drawBall(ctx,X,Y){
+  ctx.save(); ctx.beginPath(); ctx.arc(X,Y,7,0,2*Math.PI); ctx.fillStyle=C.ball; ctx.fill();
+  ctx.lineWidth=2; ctx.strokeStyle=C.panel; ctx.stroke(); ctx.restore();
+}
+
+/* ---------- scales ---------- */
+function scales(){
+  const [vx,vy]=vI(), vm=Math.hypot(vx,vy), w=Math.abs(P.omega);
+  const kv = 0.32/Math.max(0.25, vm + 0.6*w*R);
+  const ka = 0.32/Math.max(0.25, w*w*R + 2*w*(vm + 0.5*w*R));
+  return {kv, ka};
+}
+
+/* ---------- views ---------- */
+const cvI=$('cvI'), cvR=$('cvR');
+function drawInertial(st,tt){
+  const {ctx,size}=fit(cvI); const s=size/2.42;
+  const T=(x,y)=>[size/2+x*s, size/2-y*s];
+  ctx.clearRect(0,0,size,size);
+  const phi=P.omega*tt;
+  drawDisk(ctx,T,s,phi);
+  drawAxes(ctx,T,0,['x','y'],C.axis,false);
+  drawThrower(ctx,T,phi);
+  const [X0,Y0]=T(P.r0,0), [X1,Y1]=T(st.x,st.y);
+  ctx.save(); ctx.strokeStyle=C.ball; ctx.lineWidth=2.5; ctx.beginPath(); ctx.moveTo(X0,Y0); ctx.lineTo(X1,Y1); ctx.stroke(); ctx.restore();
+  const {kv}=scales();
+  drawBall(ctx,X1,Y1);
+  if (show.vel) arrow(ctx,T,st.x,st.y,st.vx*kv,st.vy*kv,C.vel,{label:'v'});
+  label(ctx,'a = 0',12,size-14,C.muted,'left','italic 14px "Times New Roman",serif');
+}
+function drawRotating(st,tt,te){
+  const {ctx,size}=fit(cvR); const s=size/2.42;
+  const T=(x,y)=>[size/2+x*s, size/2-y*s];
+  ctx.clearRect(0,0,size,size);
+  drawDisk(ctx,T,s,0);
+  drawAxes(ctx,T,0,["x′","y′"],C.axis,false);
+  // inertial x axis seen from the rotating frame
+  ctx.save(); ctx.strokeStyle=C.muted; ctx.setLineDash([7,5]); ctx.lineWidth=1.3;
+  const a=-P.omega*tt, [ax,ay]=T(1.1*Math.cos(a),1.1*Math.sin(a)), [cx,cy]=T(0,0);
+  ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(ax,ay); ctx.stroke(); ctx.restore();
+  { const [lx,ly]=T(1.18*Math.cos(a),1.18*Math.sin(a)); label(ctx,'x (S)',lx,ly,C.muted,'center','italic 13px "Times New Roman",serif'); }
+  drawThrower(ctx,T,0);
+  // trail
+  const N=Math.max(2,Math.ceil(600*tt/Math.max(te,1e-6)));
+  ctx.save(); ctx.strokeStyle=C.ball; ctx.lineWidth=2.5; ctx.lineJoin='round'; ctx.beginPath();
+  for (let i=0;i<=N;i++){ const q=state(tt*i/N), [X,Y]=T(q.xp,q.yp); i?ctx.lineTo(X,Y):ctx.moveTo(X,Y); }
+  ctx.stroke(); ctx.restore();
+  const {kv,ka}=scales();
+  if (show.path){
+    for (let k=1;k<=9;k++){
+      const tk=k*te/10; if (tk>tt+1e-9) break;
+      const q=state(tk), L=0.12;
+      const cm=Math.hypot(q.corx,q.cory), nm=Math.hypot(q.cenx,q.ceny);
+      if (cm>1e-9) arrow(ctx,T,q.xp,q.yp,L*q.corx/cm,L*q.cory/cm,C.cor,{dash:true,width:1.8,head:8});
+      if (nm>1e-9 && q.rho>0.02) arrow(ctx,T,q.xp,q.yp,L*q.cenx/nm,L*q.ceny/nm,C.cen,{width:1.8,head:8});
+    }
+  }
+  const [X,Y]=T(st.xp,st.yp);
+  if (show.units && st.rho>0.02){
+    const L=0.17;
+    arrow(ctx,T,st.xp,st.yp,L*st.er[0],L*st.er[1],C.unit,{width:1.6,head:7,label:'ρ̂′'});
+    arrow(ctx,T,st.xp,st.yp,L*st.et[0],L*st.et[1],C.unit,{width:1.6,head:7,label:'θ̂′'});
+    const ax=st.corx+st.cenx, ay=st.cory+st.ceny, [aR,aT]=st.pr([ax,ay]);
+    arrow(ctx,T,st.xp,st.yp,ka*aR*st.er[0],ka*aR*st.er[1],C.acc,{width:1.4,head:7,dash:true});
+    arrow(ctx,T,st.xp,st.yp,ka*aT*st.et[0],ka*aT*st.et[1],C.acc,{width:1.4,head:7,dash:true});
+    arrow(ctx,T,st.xp,st.yp,ka*ax,ka*ay,C.acc,{width:2.4,label:'a′'});
+  }
+  drawBall(ctx,X,Y);
+  if (show.forces){
+    arrow(ctx,T,st.xp,st.yp,ka*st.corx,ka*st.cory,C.cor,{dash:true});
+    if (st.rho>0.01) arrow(ctx,T,st.xp,st.yp,ka*st.cenx,ka*st.ceny,C.cen);
+  }
+  if (show.vel) arrow(ctx,T,st.xp,st.yp,kv*st.vxp,kv*st.vyp,C.vel,{label:'v′'});
+}
+
+/* ---------- readouts ---------- */
+function f(x,d=3){
+  if (!isFinite(x)) return '—';
+  let s=x.toFixed(d); if (/^-0\.?0*$/.test(s)) s=s.slice(1);
+  return s.replace('-','−');
+}
+const pair=(a,b)=>`(${f(a)}, ${f(b)})`;
+const fp=x=>{const v=f(x); return v.startsWith('−')?'('+v+')':v;};
+function readouts(st,tt){
+  const vp=st.pr([st.vxp,st.vyp]), co=st.pr([st.corx,st.cory]), ce=st.pr([st.cenx,st.ceny]);
+  const ac=[co[0]+ce[0], co[1]+ce[1]];
+  $('oPos').textContent=`ρ′ = ${f(st.rho)} ,  θ′ = ${f(st.thp*180/Math.PI,1)}°`;
+  $('oVel').textContent=pair(vp[0],vp[1]);
+  $('oCor').textContent=pair(co[0],co[1]);
+  $('oCen').textContent=pair(ce[0],ce[1]);
+  $('oAcc').textContent=pair(ac[0],ac[1]);
+  if (isFinite(st.thdot)){
+    const rotR=-vp[1]*st.thdot, rotT=vp[0]*st.thdot;
+    $('dRho').textContent=`${f(ac[0])} = ${f(ac[0]-rotR)} + ${fp(rotR)}`;
+    $('dTh').textContent=`${f(ac[1])} = ${f(ac[1]-rotT)} + ${fp(rotT)}`;
+  } else { $('dRho').textContent='—  (הכדור במרכז)'; $('dTh').textContent='—'; }
+  const book = P.r0<1e-9;
+  $('bookBox').style.display = book ? '' : 'none';
+  if (book){
+    const vr=P.u, w=P.omega;
+    $('bVth').textContent=f(-w*vr*tt); $('bVthS').textContent=f(vp[1]);
+    const th0=P.alpha*Math.PI/180;
+    $('bTh').textContent=f(-w*tt*180/Math.PI,1)+'°'; $('bThS').textContent=f((st.thp-th0)*180/Math.PI,1)+'°';
+    $('bAcc').textContent=pair(-w*w*vr*tt, -2*w*vr); $('bAccS').textContent=pair(ac[0],ac[1]);
+  }
+  $('decompBox').style.display = show.units ? '' : 'none';
+}
+
+/* ---------- loop ---------- */
+function render(){
+  const te=tEnd(), tt=Math.min(t,te), st=state(tt);
+  drawInertial(st,tt); drawRotating(st,tt,te); readouts(st,tt);
+  const sl=$('time'); sl.max=te.toFixed(3); sl.value=tt; $('timeVal').textContent=f(tt,2)+' s';
+}
+function frame(ts){
+  if (playing){
+    if (last!==null) t += (ts-last)/1000*speed;
+    last=ts;
+    const te=tEnd(); if (t>=te){ t=te; setPlaying(false); }
+  } else last=null;
+  render(); requestAnimationFrame(frame);
+}
+function setPlaying(p){
+  playing=p; last=null;
+  $('play').textContent = p ? '❚❚ עצור' : '▶ הפעל';
+}
+
+/* ---------- controls ---------- */
+const sliders=['omega','u','r0','alpha'];
+function syncUI(){
+  sliders.forEach(k=>$(k).value=P[k]);
+  $('rel').checked=P.rel;
+  $('omegaV').textContent=f(P.omega,2)+' rad/s';
+  $('uV').textContent=f(P.u,2)+' m/s';
+  $('r0V').textContent=f(P.r0,2)+' m';
+  $('alphaV').textContent=f(P.alpha,0)+'°';
+}
+sliders.forEach(k=>$(k).addEventListener('input',e=>{ P[k]=parseFloat(e.target.value); t=0; syncUI(); }));
+$('rel').addEventListener('change',e=>{ P.rel=e.target.checked; t=0; });
+$('play').addEventListener('click',()=>{ if (!playing && t>=tEnd()-1e-9) t=0; setPlaying(!playing); });
+$('reset').addEventListener('click',()=>{ t=0; setPlaying(false); });
+$('time').addEventListener('input',e=>{ t=parseFloat(e.target.value); setPlaying(false); });
+$('speed').addEventListener('change',e=>{ speed=parseFloat(e.target.value); });
+[['showVel','vel'],['showForces','forces'],['showPath','path'],['showUnits','units']]
+  .forEach(([id,k])=>$(id).addEventListener('change',e=>{ show[k]=e.target.checked; }));
+const presets={
+  book:{omega:1, u:0.5, alpha:0, r0:0, rel:false},
+  rim:{omega:1, u:0.8, alpha:180, r0:0.9, rel:true},
+  restI:{omega:1, u:0, alpha:0, r0:0.6, rel:false},
+  restR:{omega:1, u:0, alpha:0, r0:0.5, rel:true}
+};
+document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{
+  Object.assign(P,presets[b.dataset.preset]); t=0; syncUI(); setPlaying(true);
+}));
+syncUI();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>

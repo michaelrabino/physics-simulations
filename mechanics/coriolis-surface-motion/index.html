@@ -1,0 +1,541 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>קוריוליס על פני כדור הארץ</title>
+<style>
+:root{
+  --bg:#f5f4ef; --panel:#ffffff; --ink:#1c2230; --muted:#5f6778; --line:#dcdfe6;
+  --accent:#2d5bd0; --accent-ink:#ffffff; --soft:#eef2fb;
+  --earth:#dbe7f7; --earth-line:#9fb6d6; --axis:#98a1b3; --grid:#e3e6ec;
+  --ball:#d6336c; --ref:#6b7385; --vel:#1f9d55; --cor:#e8590c; --start:#2d5bd0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12151c; --panel:#1b1f29; --ink:#e6e9ef; --muted:#9aa3b5; --line:#2e3442;
+    --accent:#7aa2ff; --accent-ink:#0f1320; --soft:#222a3b;
+    --earth:#1f2c42; --earth-line:#47618a; --axis:#5f6a80; --grid:#262c39;
+    --ball:#ff6b9a; --ref:#9aa3b5; --vel:#51cf66; --cor:#ff922b; --start:#7aa2ff;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12151c; --panel:#1b1f29; --ink:#e6e9ef; --muted:#9aa3b5; --line:#2e3442;
+  --accent:#7aa2ff; --accent-ink:#0f1320; --soft:#222a3b;
+  --earth:#1f2c42; --earth-line:#47618a; --axis:#5f6a80; --grid:#262c39;
+  --ball:#ff6b9a; --ref:#9aa3b5; --vel:#51cf66; --cor:#ff922b; --start:#7aa2ff;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink)}
+body{font-family:"Segoe UI","Noto Sans Hebrew",Arial,sans-serif;line-height:1.55;font-size:15px}
+.wrap{max-width:1180px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:1.55rem;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 16px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.views{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.views h2{font-size:1rem;margin:0 0 2px}
+.views .note{color:var(--muted);font-size:.85rem;margin:0 0 6px;min-height:2.6em}
+canvas{width:100%;aspect-ratio:1/1;display:block;border-radius:8px;direction:ltr}
+#cvG{cursor:grab;touch-action:none}
+#cvG:active{cursor:grabbing}
+.legend{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin:10px 2px 0;font-size:.88rem;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.sw{display:inline-block;width:24px;height:0;border-top:3px solid}
+.sw.dash{border-top-style:dashed}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+@media (max-width:820px){.views,.grid2{grid-template-columns:1fr}}
+h3{font-size:1rem;margin:2px 0 10px}
+.row{display:grid;grid-template-columns:140px 1fr 92px;align-items:center;gap:10px;margin:6px 0}
+.row label{font-size:.92rem}
+.row output{font-variant-numeric:tabular-nums;direction:ltr;text-align:left;font-size:.9rem}
+input[type=range]{width:100%;accent-color:var(--accent);direction:ltr}
+.checks{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+.checks label{display:flex;align-items:center;gap:8px;font-size:.92rem}
+input[type=checkbox]{accent-color:var(--accent);width:16px;height:16px}
+.btns{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0}
+button{font:inherit;font-size:.9rem;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:8px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);min-width:90px}
+select{font:inherit;font-size:.9rem;background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:5px 8px}
+.timebar{display:grid;grid-template-columns:auto auto 1fr 80px;gap:10px;align-items:center}
+.timebar output{direction:ltr;text-align:left;font-variant-numeric:tabular-nums}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+td{padding:5px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.v{text-align:left;font-variant-numeric:tabular-nums;white-space:nowrap}
+.m{direction:ltr;unicode-bidi:isolate;font-family:"Cambria Math","Times New Roman",serif;font-style:italic;white-space:nowrap}
+.hl{background:var(--soft)}
+.small{font-size:.85rem;color:var(--muted)}
+details{margin-top:14px}
+summary{cursor:pointer;font-weight:600}
+details ul,details ol{margin:8px 0;padding-inline-start:22px}
+details li{margin:4px 0}
+.sep{height:1px;background:var(--line);margin:10px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>קוריוליס על פני כדור הארץ</h1>
+  <p class="sub">גוף מחליק בלי חיכוך על פני כדור הארץ ויוצא במהירות התחלתית בכיוון כלשהו לאורך פני השטח. הצופה על הארץ רואה אותו סוטה מהמסלול "הישר" בגלל תאוצת קוריוליס.</p>
+
+  <div class="views">
+    <div class="card">
+      <h2>כדור הארץ – המסלול כפי שרואה צופה על הארץ</h2>
+      <p class="note">גררו כדי לסובב, וגלגלו את גלגלת העכבר כדי להגדיל או להקטין.</p>
+      <canvas id="cvG"></canvas>
+      <div class="btns" style="margin:8px 0 0"><button id="zoomBtn">🔍 התקרבות למסלול</button><button id="resetView">איפוס זווית הצפייה</button></div>
+    </div>
+    <div class="card">
+      <h2>מפה סביב נקודת היציאה</h2>
+      <p class="note">צפון למעלה. המרחקים על המפה נשמרים ביחס לנקודת היציאה.</p>
+      <canvas id="cvM"></canvas>
+    </div>
+  </div>
+
+  <div class="legend">
+    <span><i class="sw" style="border-color:var(--ball)"></i>המסלול</span>
+    <span><i class="sw dash" style="border-color:var(--ref)"></i>המסלול ללא קוריוליס (מעגל גדול)</span>
+    <span><i class="sw" style="border-color:var(--vel)"></i>מהירות</span>
+    <span><i class="sw dash" style="border-color:var(--cor)"></i>תאוצת קוריוליס (הרכיב האופקי)</span>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div class="timebar">
+      <button id="play" class="primary">▶ הפעל</button>
+      <button id="reset">↺ מההתחלה</button>
+      <input type="range" id="time" min="0" max="1" step="0.0005" value="0" aria-label="זמן">
+      <output id="timeVal">0.0 h</output>
+    </div>
+    <div class="btns" style="margin-top:10px;align-items:center">
+      <span class="small">מהירות הצגה:</span>
+      <select id="speed">
+        <option value="0.5">×0.5</option>
+        <option value="1" selected>×1</option>
+        <option value="2">×2</option>
+        <option value="4">×4</option>
+      </select>
+      <span class="small">(במהירות ×1 כל משך התנועה מוצג בכ־12 שניות)</span>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h3>פרמטרים</h3>
+      <div class="btns">
+        <button data-p="45,0,100,24">45°N, צפונה</button>
+        <button data-p="-45,0,100,24">45°S, צפונה</button>
+        <button data-p="30,90,20,48">רוח חלשה ב־30°N</button>
+        <button data-p="0,90,200,24">מזרחה לאורך קו המשווה</button>
+        <button data-p="0,0,200,48">צפונה מקו המשווה</button>
+        <button data-p="88,45,50,24">ליד הקוטב הצפוני</button>
+      </div>
+      <div class="sep"></div>
+      <div class="row"><label for="lat">קו הרוחב של נקודת היציאה</label><input type="range" id="lat" min="-89" max="89" step="0.5" value="45"><output id="latV"></output></div>
+      <div class="row"><label for="az">כיוון היציאה</label><input type="range" id="az" min="0" max="359" step="1" value="0"><output id="azV"></output></div>
+      <div class="row"><label for="vs">גודל המהירות</label><input type="range" id="vs" min="0" max="1" step="0.001" value="0.5"><output id="vV"></output></div>
+      <div class="row"><label for="hrs">משך התנועה</label><input type="range" id="hrs" min="1" max="96" step="1" value="24"><output id="hV"></output></div>
+      <p class="small">כיוון היציאה נמדד מהצפון עם כיוון השעון: 0° צפונה, 90° מזרחה, 180° דרומה, 270° מערבה.</p>
+      <div class="checks">
+        <label><input type="checkbox" id="showRef" checked> הצג את המסלול ללא קוריוליס</label>
+        <label><input type="checkbox" id="showArr" checked> הצג את חיצי המהירות והתאוצה</label>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>מדידות הצופה על הארץ</h3>
+      <table>
+        <tr><td>זמן</td><td class="v" dir="ltr" id="rT"></td></tr>
+        <tr><td>מיקום</td><td class="v" dir="ltr" id="rPos"></td></tr>
+        <tr><td>גודל המהירות</td><td class="v" id="rV"></td></tr>
+        <tr><td>תאוצת קוריוליס (הרכיב האופקי)</td><td class="v" dir="ltr" id="rA"></td></tr>
+        <tr><td>הזווית בין התאוצה למהירות</td><td class="v" dir="ltr" id="rAng"></td></tr>
+        <tr><td>הדרך שהגוף עבר</td><td class="v" id="rS"></td></tr>
+        <tr><td>הסטייה הצידה מהמסלול ללא קוריוליס</td><td class="v" id="rX"></td></tr>
+        <tr class="hl"><td colspan="2"><b>קירוב מקומי סביב נקודת היציאה</b> (כאילו <span class="m">f = 2ω sinφ₀</span> קבוע)</td></tr>
+        <tr><td><span class="m">f = 2ω sinφ₀</span></td><td class="v" dir="ltr" id="rF"></td></tr>
+        <tr><td>רדיוס המעגל <span class="m">v/|f|</span></td><td class="v" id="rR"></td></tr>
+        <tr><td>זמן מחזור <span class="m">2π/|f|</span></td><td class="v" id="rP"></td></tr>
+      </table>
+      <p class="small">החישוב: אינטגרציה נומרית של התנועה במערכת המסתובבת עם כדור הארץ, עם <span class="m">R = 6.4×10⁶ m</span> ו־<span class="m">ω = 7.3×10⁻⁵ rad/s</span>.</p>
+    </div>
+  </div>
+
+  <details class="card">
+    <summary>מה רואים כאן?</summary>
+    <ul>
+      <li>במערכת המסתובבת עם כדור הארץ פועלת על הגוף תאוצת קוריוליס <span class="m">−2ω×v</span>. הרכיב האנכי שלה מאוזן על ידי הכוח הנורמלי, ולכן רק הרכיב האופקי משנה את התנועה. גודלו <span class="m">2ω v |sinφ|</span>, והוא תמיד ניצב למהירות.</li>
+      <li>מכיוון שהתאוצה ניצבת למהירות, היא משנה רק את כיוון התנועה ולא את גודל המהירות.</li>
+      <li>בחצי הכדור הצפוני הגוף סוטה ימינה מכיוון תנועתו, ובחצי הכדור הדרומי שמאלה, בכל כיוון יציאה. על קו המשווה הרכיב האופקי מתאפס.</li>
+      <li>באזור קטן, שבו <span class="m">sinφ</span> כמעט קבוע, הגוף נע במעגל ("מעגל אינרציאלי") ברדיוס <span class="m">v/|f|</span> ובזמן מחזור <span class="m">2π/|f|</span>. כשהגוף נע על פני טווח גדול של קווי רוחב, <span class="m">f</span> משתנה, והמעגלים נסחפים מערבה.</li>
+      <li>הקו המקווקו הוא המסלול שהגוף היה עובר בלי קוריוליס: מעגל גדול על פני כדור הארץ, שהוא ה"קו הישר" על פני כדור.</li>
+      <li>ההנחה: פני השטח מאונכים לכבידה האפקטיבית (כמו פני הים), כך שהכוח הצנטריפוגלי כבר כלול בכבידה ואינו דוחף את הגוף לאורך פני השטח.</li>
+    </ul>
+  </details>
+  <details class="card">
+    <summary>שאלות לחקירה</summary>
+    <ol>
+      <li>שגרו את הגוף מ־45°N בכיוונים שונים. האם הצד שאליו הוא סוטה תלוי בכיוון היציאה?</li>
+      <li>השוו בין 45°N לבין 45°S באותה מהירות ובאותו כיוון. מה מתהפך?</li>
+      <li>מדדו בעזרת סרגל הזמן את משך הלולאה הראשונה ב־30°N והשוו אותו ל־<span class="m">2π/|f|</span>. השוו גם לזמן הסיבוב של מישור התנודה של מטוטלת פוקו באותו קו רוחב.</li>
+      <li>הכפילו את המהירות. מה קורה לגודל הלולאה ולזמן המחזור שלה?</li>
+      <li>שגרו את הגוף מזרחה לאורך קו המשווה ואחר כך צפונה מקו המשווה. הסבירו את ההבדל.</li>
+      <li>למה גודל המהירות נשאר קבוע לאורך כל התנועה?</li>
+    </ol>
+  </details>
+</div>
+
+<script>
+(function(){
+const $=id=>document.getElementById(id);
+const RE=6.4e6, W=7.3e-5, DEG=Math.PI/180;
+const P={lat:45, az:0, v:100, hours:24};
+let traj=null, t=0, playing=false, last=null, speed=1;
+let showRef=true, showArr=true;
+
+const C={};
+function readColors(){
+  const cs=getComputedStyle(document.documentElement);
+  ['panel','ink','muted','line','accent','earth','earth-line','axis','grid','ball','ref','vel','cor','start']
+    .forEach(k=>C[k]=cs.getPropertyValue('--'+k).trim());
+}
+readColors();
+try{ matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ readColors(); if (traj) render(); }); }catch(e){}
+
+/* ---------- vectors ---------- */
+const add=(a,b)=>[a[0]+b[0],a[1]+b[1],a[2]+b[2]];
+const mul=(a,k)=>[a[0]*k,a[1]*k,a[2]*k];
+const dot=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]];
+const norm=a=>Math.hypot(a[0],a[1],a[2]);
+const unit=a=>mul(a,1/norm(a));
+const OM=[0,0,W];
+
+/* ---------- speed slider (logarithmic, 5 … 2000 m/s) ---------- */
+const VMIN=5, VMAX=2000;
+const s2v=s=>VMIN*Math.pow(VMAX/VMIN,s);
+const v2s=v=>Math.log(v/VMIN)/Math.log(VMAX/VMIN);
+
+/* ---------- physics ----------
+   Earth-fixed frame, origin at the centre, z along the rotation axis; the start point is on longitude 0.
+   On a level surface the body feels only the horizontal part of −2ω×v (plus the constraint keeping it on the sphere). */
+function localBasis(r){ // r unit
+  const z=[0,0,1];
+  let e=cross(z,r); const en=norm(e);
+  e = en>1e-9 ? mul(e,1/en) : [0,1,0];
+  const n=cross(r,e);
+  return {e,n};
+}
+function corH(r,v){ // horizontal Coriolis acceleration, r unit
+  let w=mul(cross(OM,v),-2);
+  return add(w,mul(r,-dot(w,r)));
+}
+function simulate(){
+  const f=P.lat*DEG, u0=[Math.cos(f),0,Math.sin(f)];
+  const {e:e0,n:n0}=localBasis(u0);
+  const a=P.az*DEG, vh=add(mul(n0,Math.cos(a)),mul(e0,Math.sin(a)));
+  const T=P.hours*3600, N=Math.max(200,Math.ceil(T/15)), dt=T/N;
+  const store=Math.max(1,Math.round(N/2400));
+  let r=mul(u0,RE), v=mul(vh,P.v);
+  const acc=(r,v)=>{ const rh=unit(r); return add(corH(rh,v), mul(rh,-dot(v,v)/norm(r))); };
+  const R=[u0], V=[v.slice()], TS=[0];
+  for (let i=1;i<=N;i++){
+    const a1=acc(r,v);
+    const r2=add(r,mul(v,dt/2)), v2=add(v,mul(a1,dt/2)), a2=acc(r2,v2);
+    const r3=add(r,mul(v2,dt/2)), v3=add(v,mul(a2,dt/2)), a3=acc(r3,v3);
+    const r4=add(r,mul(v3,dt)),   v4=add(v,mul(a3,dt)),   a4=acc(r4,v4);
+    r=add(r,mul(add(add(v,mul(v2,2)),add(mul(v3,2),v4)),dt/6));
+    v=add(v,mul(add(add(a1,mul(a2,2)),add(mul(a3,2),a4)),dt/6));
+    const rh=unit(r); r=mul(rh,RE);                 // stay on the sphere
+    v=add(v,mul(rh,-dot(v,rh)));                    // stay tangent
+    if (i%store===0 || i===N){ R.push(rh); V.push(v.slice()); TS.push(i*dt); }
+  }
+  // great circle the body would follow without Coriolis
+  const ref=tt=>{ const ang=P.v*tt/RE; return add(mul(u0,Math.cos(ang)),mul(vh,Math.sin(ang))); };
+  const gcN=unit(cross(u0,vh));   // normal of that great circle (points to the left of the motion)
+  traj={R,V,TS,T,u0,vh,ref,gcN};
+}
+function stateAt(tt){
+  const {R,V,TS}=traj;
+  if (tt<=0) return {r:R[0],v:V[0]};
+  if (tt>=traj.T) return {r:R[R.length-1],v:V[V.length-1]};
+  let lo=0, hi=TS.length-1;
+  while (hi-lo>1){ const m=(lo+hi)>>1; if (TS[m]<=tt) lo=m; else hi=m; }
+  const f=(tt-TS[lo])/(TS[hi]-TS[lo]);
+  const r=unit(add(mul(R[lo],1-f),mul(R[hi],f)));
+  let v=add(mul(V[lo],1-f),mul(V[hi],f)); v=add(v,mul(r,-dot(v,r)));
+  return {r,v};
+}
+
+/* ---------- drawing helpers ---------- */
+function fit(cv){
+  const r=cv.getBoundingClientRect(), dpr=window.devicePixelRatio||1;
+  const Wd=Math.max(50,Math.round(r.width*dpr));
+  if (cv.width!==Wd){ cv.width=Wd; cv.height=Wd; }
+  const ctx=cv.getContext('2d'); ctx.setTransform(dpr,0,0,dpr,0,0);
+  return {ctx,size:r.width};
+}
+function text(ctx,t,X,Y,color,align='center',font='12.5px "Segoe UI",Arial,sans-serif'){
+  ctx.save(); ctx.fillStyle=color; ctx.font=font; ctx.direction=/[֐-׿]/.test(t)?'rtl':'ltr';
+  ctx.textAlign=align; ctx.textBaseline='middle'; ctx.fillText(t,X,Y); ctx.restore();
+}
+function arrowPx(ctx,X0,Y0,X1,Y1,color,opt={}){
+  const L=Math.hypot(X1-X0,Y1-Y0); if (L<3) return;
+  const ang=Math.atan2(Y1-Y0,X1-X0), hl=Math.min(opt.head||9,L*0.45);
+  ctx.save(); ctx.strokeStyle=color; ctx.fillStyle=color; ctx.lineWidth=opt.width||2.2; ctx.lineCap='round';
+  if (opt.dash) ctx.setLineDash([6,4]);
+  ctx.beginPath(); ctx.moveTo(X0,Y0); ctx.lineTo(X1-hl*0.7*Math.cos(ang),Y1-hl*0.7*Math.sin(ang)); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(X1,Y1);
+  ctx.lineTo(X1-hl*Math.cos(ang-0.42),Y1-hl*Math.sin(ang-0.42));
+  ctx.lineTo(X1-hl*Math.cos(ang+0.42),Y1-hl*Math.sin(ang+0.42)); ctx.closePath(); ctx.fill();
+  if (opt.label) text(ctx,opt.label,X1+(opt.lo||14)*Math.cos(ang),Y1+(opt.lo||14)*Math.sin(ang),color,'center','italic 14px "Times New Roman",serif');
+  ctx.restore();
+}
+function dotPx(ctx,X,Y,r,color,ring){
+  ctx.save(); ctx.beginPath(); ctx.arc(X,Y,r,0,2*Math.PI); ctx.fillStyle=color; ctx.fill();
+  if (ring){ ctx.lineWidth=2; ctx.strokeStyle=C.panel; ctx.stroke(); } ctx.restore();
+}
+const ARR=42; // on-screen length of the arrows (px)
+
+/* ---------- globe ---------- */
+const view={yaw:20*DEG, pitch:30*DEG, user:false, Z:1, F:[0,0,0], mode:'free', S:1, cx:0, cy:0, rt:[0,1,0], up:[0,0,1], vd:[1,0,0]};
+const ZMAX=40;
+function defaultView(){ view.yaw=20*DEG; view.pitch=Math.max(-75,Math.min(75,0.85*P.lat+(P.lat>=0?8:-8)))*DEG; }
+function fitZoom(){   // zoom so that the path fills about two thirds of the view
+  const c=pathCentre(); let rho=0; for (const r of traj.R) rho=Math.max(rho,Math.acos(Math.max(-1,Math.min(1,dot(r,c)))));
+  view.Z=Math.max(1.5,Math.min(ZMAX,0.85/Math.max(rho,1e-3)));
+}
+function pathCentre(){ let s=[0,0,0]; for (const r of traj.R) s=add(s,r); const n=norm(s); return n>1e-6?mul(s,1/n):traj.u0; }
+function drawGlobe(tt){
+  const {ctx,size}=fit($('cvG')); ctx.clearRect(0,0,size,size);
+  if (!view.user) defaultView();
+  const cp=Math.cos(view.pitch), sp=Math.sin(view.pitch), cw=Math.cos(view.yaw), sw=Math.sin(view.yaw);
+  const vd=[cp*cw,cp*sw,sp], rt=[-sw,cw,0], up=cross(vd,rt);
+  const Z=view.Z, S=size*0.36*Z, cx=size/2, cy=size/2+size*0.03;
+  if (view.mode==='path') view.F=pathCentre();
+  const fx=dot(view.F,rt), fy=dot(view.F,up);
+  Object.assign(view,{S,cx,cy,rt,up,vd});
+  const proj=q=>[cx+S*(dot(q,rt)-fx), cy-S*(dot(q,up)-fy)];
+  const vis=q=>{ const a=dot(q,rt), b=dot(q,up), r2=a*a+b*b; if (r2>=1) return true; return dot(q,vd)>=Math.sqrt(1-r2)-1e-6; };
+  function poly(pts,o){
+    const run=(want,color,dash,width,alpha)=>{
+      ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=width; ctx.lineJoin='round'; ctx.lineCap='round'; ctx.globalAlpha=alpha;
+      if (dash) ctx.setLineDash(dash);
+      ctx.beginPath(); let pen=false, prev=null;
+      for (const q of pts){
+        const ok=vis(q)===want, P2=proj(q);
+        if (ok){ if (!pen){ prev?ctx.moveTo(prev[0],prev[1]):ctx.moveTo(P2[0],P2[1]); } ctx.lineTo(P2[0],P2[1]); pen=true; }
+        else pen=false;
+        prev=P2;
+      }
+      ctx.stroke(); ctx.restore();
+    };
+    run(true,o.color,o.dash||null,o.width||1,o.alpha||1);
+    if (o.hidden) run(false,o.hidden,[3,4],o.width||1,0.3);
+  }
+  const sph=(la,lo)=>[Math.cos(la)*Math.cos(lo),Math.cos(la)*Math.sin(lo),Math.sin(la)];
+  const [ox,oy]=proj([0,0,0]);
+  ctx.save(); ctx.beginPath(); ctx.arc(ox,oy,S,0,2*Math.PI); ctx.fillStyle=C.earth; ctx.fill();
+  const gr=ctx.createRadialGradient(ox-0.4*S,oy-0.4*S,0.05*S,ox,oy,S);
+  gr.addColorStop(0,'rgba(255,255,255,0.16)'); gr.addColorStop(0.6,'rgba(255,255,255,0)'); gr.addColorStop(1,'rgba(0,0,0,0.18)');
+  ctx.fillStyle=gr; ctx.fill(); ctx.lineWidth=1.5; ctx.strokeStyle=C['earth-line']; ctx.stroke(); ctx.restore();
+  for (let la=-60; la<=60; la+=30){ const pts=[]; for (let lo=0;lo<=360;lo+=3) pts.push(sph(la*DEG,lo*DEG)); poly(pts,{color:C['earth-line'],width:la===0?1.8:0.8}); }
+  for (let lo=0; lo<360; lo+=30){ const pts=[]; for (let la=-90;la<=90;la+=3) pts.push(sph(la*DEG,lo*DEG)); poly(pts,{color:C['earth-line'],width:0.8}); }
+  { const pts=[]; for (let z=-1.3;z<=1.301;z+=0.025) pts.push([0,0,z]); poly(pts,{color:C.axis,dash:[5,5],width:1.2,hidden:C.axis}); }
+  if (Z<2.5){ const [x0,y0]=proj([0,0,1.3]), [x1,y1]=proj([0,0,1.55]); arrowPx(ctx,x0,y0,x1,y1,C.ink,{label:'ω',lo:12,width:2}); }
+  if (Z<2.5){ const pts=[]; for (let a=0;a<=300;a+=6) pts.push([0.13*Math.cos(a*DEG),0.13*Math.sin(a*DEG),1.18]);
+    poly(pts,{color:C.ink,width:1.3});
+    const [x0,y0]=proj(pts[pts.length-2]), [x1,y1]=proj(pts[pts.length-1]);
+    const dx=x1-x0, dy=y1-y0, L=Math.hypot(dx,dy)||1; arrowPx(ctx,x1-dx/L*8,y1-dy/L*8,x1+dx/L*2,y1+dy/L*2,C.ink,{width:1.3,head:7}); }
+  if (vis([0,0,1])){ const [X,Y]=proj([0,0,1]); text(ctx,'צפון',X+22,Y+6,C.muted); }
+  if (vis([0,0,-1])){ const [X,Y]=proj([0,0,-1]); text(ctx,'דרום',X+22,Y-6,C.muted); }
+  // reference great circle (whole duration)
+  if (showRef){ const pts=[]; const n=240; for (let i=0;i<=n;i++) pts.push(traj.ref(traj.T*i/n)); poly(pts,{color:C.ref,dash:[6,5],width:1.6,hidden:C.ref}); }
+  // path up to t
+  const pts=[]; for (let i=0;i<traj.TS.length && traj.TS[i]<=tt;i++) pts.push(traj.R[i]);
+  const st=stateAt(tt); pts.push(st.r);
+  poly(pts,{color:C.ball,width:2.4,hidden:C.ball});
+  // start
+  if (vis(traj.u0)){ const [X,Y]=proj(traj.u0); dotPx(ctx,X,Y,4.5,C.start); }
+  // body + arrows
+  if (vis(st.r)){
+    const [X,Y]=proj(st.r);
+    if (showArr){
+      const vh=unit(st.v), [xv,yv]=proj(add(st.r,mul(vh,0.05))); const dv=[xv-X,yv-Y], Lv=Math.hypot(dv[0],dv[1])||1;
+      arrowPx(ctx,X,Y,X+dv[0]/Lv*ARR*Math.min(1,Lv/(0.05*S)),Y+dv[1]/Lv*ARR*Math.min(1,Lv/(0.05*S)),C.vel,{width:2.2});
+      const a=corH(st.r,st.v), am=norm(a), amax=2*W*P.v;
+      if (am/amax>0.02){
+        const ah=mul(a,1/am), [xa,ya]=proj(add(st.r,mul(ah,0.05))); const da=[xa-X,ya-Y], La=Math.hypot(da[0],da[1])||1;
+        const len=1.3*ARR*(am/amax)*Math.min(1,La/(0.05*S));
+        arrowPx(ctx,X,Y,X+da[0]/La*len,Y+da[1]/La*len,C.cor,{width:2.2,dash:true});
+      }
+    }
+    dotPx(ctx,X,Y,6,C.ball,true);
+  }
+}
+
+/* ---------- local map (azimuthal equidistant, centred on the start) ---------- */
+function mapXY(p){ // km east, km north of the start
+  const u0=traj.u0, {e,n}=localBasis(u0);
+  const c=Math.acos(Math.max(-1,Math.min(1,dot(p,u0))));
+  const tv=add(p,mul(u0,-dot(p,u0))), tn=norm(tv);
+  if (tn<1e-12) return [0,0];
+  const x=dot(tv,e)/tn, y=dot(tv,n)/tn;
+  return [x*c*RE/1000, y*c*RE/1000];
+}
+let mapBox=null;
+function computeMapBox(){
+  let x0=0,x1=0,y0=0,y1=0;
+  for (const r of traj.R){ const [x,y]=mapXY(r); x0=Math.min(x0,x); x1=Math.max(x1,x); y0=Math.min(y0,y); y1=Math.max(y1,y); }
+  const span=Math.max(x1-x0,y1-y0,20)*1.18;
+  mapBox={cx:(x0+x1)/2, cy:(y0+y1)/2, span};
+}
+function niceStep(x){ const e=Math.pow(10,Math.floor(Math.log10(x))), m=x/e; return (m>=5?5:m>=2?2:1)*e; }
+function drawMap(tt){
+  const {ctx,size}=fit($('cvM')); ctx.clearRect(0,0,size,size);
+  const sc=(size-20)/mapBox.span, X=x=>size/2+(x-mapBox.cx)*sc, Y=y=>size/2-(y-mapBox.cy)*sc;
+  const step=niceStep(mapBox.span/5);
+  ctx.save(); ctx.strokeStyle=C.grid; ctx.lineWidth=1;
+  const gx0=Math.floor((mapBox.cx-mapBox.span)/step)*step, gy0=Math.floor((mapBox.cy-mapBox.span)/step)*step;
+  for (let g=gx0; g<=mapBox.cx+mapBox.span; g+=step){ ctx.beginPath(); ctx.moveTo(X(g),0); ctx.lineTo(X(g),size); ctx.stroke(); }
+  for (let g=gy0; g<=mapBox.cy+mapBox.span; g+=step){ ctx.beginPath(); ctx.moveTo(0,Y(g)); ctx.lineTo(size,Y(g)); ctx.stroke(); }
+  ctx.restore();
+  // compass
+  arrowPx(ctx,size-26,52,size-26,22,C.muted,{width:1.5,head:7}); text(ctx,'צפון',size-26,64,C.muted);
+  // scale bar
+  const bx=14, by=size-18, bl=step*sc;
+  ctx.save(); ctx.strokeStyle=C.ink; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(bx,by); ctx.lineTo(bx+bl,by);
+  ctx.moveTo(bx,by-4); ctx.lineTo(bx,by+4); ctx.moveTo(bx+bl,by-4); ctx.lineTo(bx+bl,by+4); ctx.stroke(); ctx.restore();
+  text(ctx,step.toLocaleString('he-IL')+' ק״מ',bx+bl/2,by-11,C.ink);
+  // reference (clipped by the canvas)
+  if (showRef){
+    ctx.save(); ctx.strokeStyle=C.ref; ctx.lineWidth=1.6; ctx.setLineDash([6,5]); ctx.beginPath();
+    const n=400; for (let i=0;i<=n;i++){ const [x,y]=mapXY(traj.ref(traj.T*i/n)); i?ctx.lineTo(X(x),Y(y)):ctx.moveTo(X(x),Y(y)); }
+    ctx.stroke(); ctx.restore();
+  }
+  // path
+  ctx.save(); ctx.strokeStyle=C.ball; ctx.lineWidth=2.4; ctx.lineJoin='round'; ctx.beginPath();
+  for (let i=0;i<traj.TS.length && traj.TS[i]<=tt;i++){ const [x,y]=mapXY(traj.R[i]); i?ctx.lineTo(X(x),Y(y)):ctx.moveTo(X(x),Y(y)); }
+  const st=stateAt(tt), [cxk,cyk]=mapXY(st.r); ctx.lineTo(X(cxk),Y(cyk)); ctx.stroke(); ctx.restore();
+  dotPx(ctx,X(0),Y(0),5,C.start); text(ctx,'יציאה',X(0),Y(0)+15,C.start);
+  // arrows: direction in the map from a short step along the vector
+  const Xc=X(cxk), Yc=Y(cyk);
+  if (showArr){
+    const dirOn=(vec)=>{ const p2=unit(add(st.r,mul(unit(vec),1e-4))); const [x2,y2]=mapXY(p2); const dx=X(x2)-Xc, dy=Y(y2)-Yc, L=Math.hypot(dx,dy)||1; return [dx/L,dy/L]; };
+    const [vx,vy]=dirOn(st.v); arrowPx(ctx,Xc,Yc,Xc+vx*ARR,Yc+vy*ARR,C.vel,{width:2.2,label:'v'});
+    const a=corH(st.r,st.v), am=norm(a), amax=2*W*P.v;
+    if (am/amax>0.02){ const [ax,ay]=dirOn(a), L=1.3*ARR*am/amax; arrowPx(ctx,Xc,Yc,Xc+ax*L,Yc+ay*L,C.cor,{width:2.2,dash:true}); }
+  }
+  dotPx(ctx,Xc,Yc,6,C.ball,true);
+}
+
+/* ---------- readouts ---------- */
+function fmtKm(m){ const k=m/1000; return (k<10?k.toFixed(2):k<100?k.toFixed(1):Math.round(k).toLocaleString('he-IL'))+' ק״מ'; }
+function fmtSci(x,unit){
+  if (!isFinite(x) || x===0) return '0 '+unit;
+  const sgn=x<0?'−':'', a=Math.abs(x), e=Math.floor(Math.log10(a)), m=a/Math.pow(10,e);
+  const sup={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  return sgn+m.toFixed(2)+'×10'+String(e).split('').map(c=>sup[c]).join('')+' '+unit;
+}
+function fmtH(h){ if (!isFinite(h)) return '—'; return h<1? (h*60).toFixed(0)+' דקות' : h.toFixed(1)+' שעות'; }
+function readouts(tt){
+  const st=stateAt(tt), r=st.r;
+  const lat=Math.asin(r[2])/DEG, lon=Math.atan2(r[1],r[0])/DEG;
+  $('rT').textContent=(tt/3600).toFixed(2)+' h';
+  $('rPos').textContent=Math.abs(lat).toFixed(2)+'°'+(lat>=0?'N':'S')+' ,  '+Math.abs(lon).toFixed(2)+'°'+(lon>=0?'E':'W');
+  $('rV').textContent=norm(st.v).toFixed(1)+' m/s (קבוע)';
+  const a=corH(r,st.v), am=norm(a);
+  $('rA').textContent=fmtSci(am,'m/s²');
+  if (am>1e-15){
+    const ang=Math.acos(Math.max(-1,Math.min(1,dot(a,st.v)/(am*norm(st.v)))))/DEG;
+    const side=dot(cross(r,st.v),a)>0?'שמאלה':'ימינה';
+    $('rAng').innerHTML=ang.toFixed(1)+'° <span dir="rtl">('+side+')</span>';
+  } else $('rAng').textContent='—';
+  $('rS').textContent=fmtKm(P.v*tt);
+  const xt=Math.asin(Math.max(-1,Math.min(1,dot(r,traj.gcN))))*RE;
+  $('rX').textContent=Math.abs(xt)<0.5?'0':fmtKm(Math.abs(xt))+' '+(xt>0?'שמאלה':'ימינה');
+  const f=2*W*Math.sin(P.lat*DEG);
+  $('rF').textContent=Math.abs(f)<1e-12?'0':fmtSci(f,'s⁻¹');
+  $('rR').textContent=Math.abs(f)<1e-9?'— (אין מעגל על קו המשווה)':fmtKm(P.v/Math.abs(f));
+  $('rP').textContent=Math.abs(f)<1e-9?'—':fmtH(2*Math.PI/Math.abs(f)/3600);
+}
+
+/* ---------- loop ---------- */
+function render(){
+  const tt=Math.min(t,traj.T);
+  drawGlobe(tt); drawMap(tt); readouts(tt);
+  $('time').value=tt/traj.T; $('timeVal').textContent=(tt/3600).toFixed(1)+' h';
+}
+function frame(ts){
+  if (playing){
+    if (last!==null) t+=(ts-last)/1000*speed*traj.T/12;
+    last=ts;
+    if (t>=traj.T){ t=traj.T; setPlaying(false); }
+    render();
+  } else last=null;
+  requestAnimationFrame(frame);
+}
+function setPlaying(p){ playing=p; last=null; $('play').textContent=p?'❚❚ עצור':'▶ הפעל'; }
+
+/* ---------- controls ---------- */
+function syncUI(){
+  $('lat').value=P.lat; $('az').value=P.az; $('vs').value=v2s(P.v); $('hrs').value=P.hours;
+  const a=Math.abs(P.lat); $('latV').textContent=a<0.01?'0°':a.toFixed(1)+'° '+(P.lat>0?'N':'S');
+  const names=['צפונה','צפון־מזרח','מזרחה','דרום־מזרח','דרומה','דרום־מערב','מערבה','צפון־מערב'];
+  $('azV').innerHTML=P.az+'° <span dir="rtl" style="color:var(--muted)">'+names[Math.round(P.az/45)%8]+'</span>';
+  $('vV').textContent=(P.v<100?P.v.toFixed(1):Math.round(P.v))+' m/s';
+  $('hV').textContent=P.hours+' h';
+}
+function rebuild(keepT){ simulate(); computeMapBox(); if (view.mode==='path') fitZoom(); if (!keepT) t=0; render(); }
+$('lat').addEventListener('input',e=>{ P.lat=parseFloat(e.target.value); syncUI(); rebuild(); });
+$('az').addEventListener('input',e=>{ P.az=parseFloat(e.target.value); syncUI(); rebuild(); });
+$('vs').addEventListener('input',e=>{ P.v=s2v(parseFloat(e.target.value)); syncUI(); rebuild(); });
+$('hrs').addEventListener('input',e=>{ P.hours=parseFloat(e.target.value); syncUI(); rebuild(); });
+$('showRef').addEventListener('change',e=>{ showRef=e.target.checked; render(); });
+$('showArr').addEventListener('change',e=>{ showArr=e.target.checked; render(); });
+$('play').addEventListener('click',()=>{ if (!playing && t>=traj.T) t=0; setPlaying(!playing); });
+$('reset').addEventListener('click',()=>{ t=0; setPlaying(false); render(); });
+$('time').addEventListener('input',e=>{ t=parseFloat(e.target.value)*traj.T; setPlaying(false); render(); });
+$('speed').addEventListener('change',e=>{ speed=parseFloat(e.target.value); });
+document.querySelectorAll('[data-p]').forEach(b=>b.addEventListener('click',()=>{
+  const [la,az,v,h]=b.dataset.p.split(',').map(Number);
+  Object.assign(P,{lat:la,az,v,hours:h}); view.user=false; syncUI(); rebuild(); setPlaying(true);
+}));
+/* globe interaction: drag to rotate, wheel to zoom about the cursor */
+{ const cv=$('cvG'); let drag=null;
+  cv.addEventListener('pointerdown',e=>{ drag={x:e.clientX,y:e.clientY}; try{cv.setPointerCapture(e.pointerId);}catch(_){} });
+  cv.addEventListener('pointermove',e=>{
+    if (!drag) return;
+    view.yaw-=(e.clientX-drag.x)*0.008;
+    view.pitch=Math.max(-1.45,Math.min(1.45,view.pitch+(e.clientY-drag.y)*0.008));
+    view.user=true; drag={x:e.clientX,y:e.clientY}; render();
+  });
+  const end=()=>{ drag=null; }; cv.addEventListener('pointerup',end); cv.addEventListener('pointercancel',end);
+  const zoomLabel=()=>{ $('zoomBtn').textContent=view.Z>1.01?'🌍 כל כדור הארץ':'🔍 התקרבות למסלול'; };
+  $('resetView').addEventListener('click',()=>{ view.user=false; render(); });
+  $('zoomBtn').addEventListener('click',()=>{
+    if (view.Z>1.01){ view.Z=1; view.F=[0,0,0]; view.mode='free'; }
+    else { view.mode='path'; fitZoom(); }
+    zoomLabel(); render();
+  });
+  cv.addEventListener('wheel',e=>{
+    e.preventDefault();
+    const d=e.deltaMode===1?e.deltaY*16:e.deltaY;
+    const Z0=view.Z, Z1=Math.max(1,Math.min(ZMAX,Z0*Math.exp(-d*0.0015)));
+    if (Z1===Z0) return;
+    const r=cv.getBoundingClientRect(), Xm=e.clientX-r.left, Ym=e.clientY-r.top;
+    const S0=view.S, S1=S0*Z1/Z0;
+    const F=view.F, fx0=dot(F,view.rt), fy0=dot(F,view.up), dz=dot(F,view.vd);
+    let fx=fx0+(Xm-view.cx)/S0-(Xm-view.cx)/S1, fy=fy0-(Ym-view.cy)/S0+(Ym-view.cy)/S1;
+    const fmax=2*(1-1/Z1), fn=Math.hypot(fx,fy);
+    if (fn>fmax){ fx*=fmax/fn; fy*=fmax/fn; }
+    view.F=add(add(mul(view.rt,fx),mul(view.up,fy)),mul(view.vd,Z1>1.0001?dz:0));
+    view.Z=Z1; view.mode='free'; zoomLabel(); render();
+  },{passive:false});
+}
+window.addEventListener('resize',render);
+syncUI(); rebuild();
+requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
