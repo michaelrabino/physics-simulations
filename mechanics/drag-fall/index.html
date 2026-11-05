@@ -397,6 +397,17 @@ function mlabel(cx,txt,x,y,col,size,align,bold){
   if(sub){ cx.font=f2; cx.strokeText(sub,x0+w1,y+size*0.3); cx.fillText(sub,x0+w1,y+size*0.3); }
   cx.restore();
 }
+/* column title: one line if it fits the column, otherwise one word per line */
+function laneTitle(cx,txt,x,col,maxW){
+  cx.save(); cx.font="700 13px system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
+  const w=cx.measureText(txt).width+4, words=txt.split(' ');
+  const widest=Math.max(...words.map(wd=>cx.measureText(wd).width+4));
+  cx.restore();
+  if(w<=maxW){ hlabel(cx,txt,x,18,col,13,700); return; }
+  const size= widest<=maxW ? 13 : Math.max(9,Math.floor(13*maxW/widest));
+  if(words.length>1){ hlabel(cx,words[0],x,11,col,size,700); hlabel(cx,words.slice(1).join(' '),x,27,col,size,700); }
+  else hlabel(cx,txt,x,18,col,size,700);
+}
 function hlabel(cx,txt,x,y,col,size,weight,align){
   cx.save(); cx.direction='rtl'; cx.textAlign=align||'center'; cx.textBaseline='middle';
   cx.font=(weight||600)+' '+(size||13)+"px system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
@@ -422,7 +433,7 @@ function drawLanes(t){
   const cx=lx, W=LW, H=LH, fall=S.mode==='fall';
   cx.fillStyle=C.stage; cx.fillRect(0,0,W,H);
   const cs=M.cases, n=cs.length, L=40, R=6, laneW=(W-L-R)/n;
-  const y0=62, yb=H-14, lo= fall? 0 : M.posMin, hi=M.posMax, sc=(yb-y0)/(hi-lo);
+  const y0=68, yb=H-14, lo= fall? 0 : M.posMin, hi=M.posMax, sc=(yb-y0)/(hi-lo);
   const SY= fall? p=>y0+p*sc : p=>y0+(hi-p)*sc;
   // distance grid
   for(const v of ticks(lo,hi,6)){
@@ -437,8 +448,8 @@ function drawLanes(t){
     const col=C[c.col], xc=W-R-laneW*(i+0.5);
     // lane guide
     cx.save(); cx.strokeStyle=C.line; cx.setLineDash([3,5]); cx.beginPath(); cx.moveTo(xc,y0-6); cx.lineTo(xc,yb); cx.stroke(); cx.restore();
-    hlabel(cx,c.name,xc,16,col,13,700);
-    mlabel(cx,c.sub,xc,36,C.muted,13);
+    laneTitle(cx,c.name,xc,col,laneW-10);
+    mlabel(cx,c.sub,xc,46,C.muted,laneW<90?11:13);
     // maximum height (throw)
     if(!fall){
       const yH=SY(c.H), hw=Math.min(laneW*0.38,48);
