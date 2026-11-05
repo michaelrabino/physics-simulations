@@ -416,46 +416,42 @@ function axisMap(usable,Dmin){
 }
 
 function drawScene(t){
-  const cx=sx, W=SW, H=SH, sys=SYS[S.id], x=xAt(t), B=44;
+  const cx=sx, W=SW, H=SH, sys=SYS[S.id], x=xAt(t), R=9;
   cx.fillStyle=C.stage; cx.fillRect(0,0,W,H);
+  // the mass is a point; markers and the band pass through its centre
+  const mass=(px,py)=>{ cx.beginPath(); cx.arc(px,py,R,0,2*PI); cx.fillStyle=C.ink; cx.fill(); cx.lineWidth=2; cx.strokeStyle=C.stage; cx.stroke(); };
   if(sys.orient==='h'){
-    const wallX=22, floorY=Math.round(H*0.58), D=axisMap(W-wallX-24-B-30,30), X=v=>wallX+D(v);
-    // band and markers
-    cx.fillStyle=C.band; cx.fillRect(X(M.xeq-M.A),floorY-B-14,X(M.xeq+M.A)-X(M.xeq-M.A),B+14);
+    const wallX=22, ay=Math.round(H*0.5), Lh=W-wallX-30-R, Dm=Math.max(40,0.25*Lh), D=axisMap(Lh-Dm,Dm), X=v=>wallX+D(v);
+    cx.fillStyle=C.band; cx.fillRect(X(M.xeq-M.A),ay-26,X(M.xeq+M.A)-X(M.xeq-M.A),52);
     const same=Math.abs(X(0)-X(M.xeq))<3;
-    dashLine(cx,X(0),floorY-B-34,X(0),floorY+16,C.nat,1.5);
-    if(!same) dashLine(cx,X(M.xeq),floorY-B-34,X(M.xeq),floorY+16,C.eq,1.5);
-    if(same){ hlabel(cx,'רפיון ושיווי משקל',X(0),floorY-B-46,C.eq,12); }
-    else { hlabel(cx,'רפיון',X(0),floorY-B-46,C.nat,12); hlabel(cx,'שיווי משקל',X(M.xeq),floorY-B-62,C.eq,12); }
-    // wall, floor, spring, block
-    hatch(cx,wallX,floorY-B-24,wallX,floorY,[-1,0]);
-    cx.strokeStyle=C.wall; cx.lineWidth=2; cx.beginPath(); cx.moveTo(wallX,floorY); cx.lineTo(W-8,floorY); cx.stroke();
-    spring(cx,wallX,floorY-B/2,X(x),floorY-B/2,springCol(x));
-    cx.fillStyle=C.block; cx.fillRect(X(x),floorY-B,B,B); cx.strokeStyle=C.ink; cx.lineWidth=1.5; cx.strokeRect(X(x),floorY-B,B,B);
-    mlabel(cx,'m',X(x)+B/2,floorY-B/2,C.ink,15);
-    arrow(cx,X(0),floorY+30,X(0)+46,floorY+30,C.muted,1.6); mlabel(cx,'x',X(0)+56,floorY+30,C.muted,15);
+    dashLine(cx,X(0),ay-44,X(0),ay+30,C.nat,1.5);
+    if(!same) dashLine(cx,X(M.xeq),ay-44,X(M.xeq),ay+30,C.eq,1.5);
+    if(same){ hlabel(cx,'רפיון ושיווי משקל',X(0),ay-56,C.eq,12); }
+    else { hlabel(cx,'רפיון',X(0),ay-56,C.nat,12); hlabel(cx,'שיווי משקל',X(M.xeq),ay-72,C.eq,12); }
+    hatch(cx,wallX,ay-30,wallX,ay+30,[-1,0]);
+    spring(cx,wallX,ay,X(x)-R,ay,springCol(x));
+    mass(X(x),ay); mlabel(cx,'m',X(x),ay-20,C.ink,15);
+    arrow(cx,X(0),ay+46,X(0)+46,ay+46,C.muted,1.6); mlabel(cx,'x',X(0)+56,ay+46,C.muted,15);
     return;
   }
   if(sys.orient==='v'){
     const cxm=Math.round(W*0.42), top= sys.elev? 34 : 26, bottom=H-16;
-    const D=axisMap(bottom-top-B-26,26), Y=v=>top+D(v);
+    const Lv=bottom-top-R, Dm=Math.max(40,0.25*Lv), D=axisMap(Lv-Dm,Dm), Y=v=>top+D(v);
     if(sys.elev){
       cx.strokeStyle=C.wall; cx.lineWidth=2; cx.strokeRect(cxm-78,top-12,156,bottom-top+10);
       const p=P[S.id];
       if(Math.abs(p.a0)>0.01){ const yc=(top+bottom)/2, d=p.a0>0?-1:1; arrow(cx,cxm-104,yc-d*26,cxm-104,yc+d*26,C.ink,2.2); mlabel(cx,'a_0',cxm-104,yc+d*40,C.ink,15,'center',true); }
     }
     hatch(cx,cxm-60,top,cxm+60,top,[0,-1]);
-    // band and markers
-    cx.fillStyle=C.band; cx.fillRect(cxm-60,Y(M.xeq-M.A),120,Y(M.xeq+M.A)-Y(M.xeq-M.A)+B);
+    cx.fillStyle=C.band; cx.fillRect(cxm-60,Y(M.xeq-M.A),120,Y(M.xeq+M.A)-Y(M.xeq-M.A));
     const lx1=cxm-64, lx2=cxm+64, same=Math.abs(Y(0)-Y(M.xeq))<3;
     if(M.xeqOld!=null && Math.abs(Y(M.xeqOld)-Y(M.xeq))>3){ dashLine(cx,lx1,Y(M.xeqOld),lx2,Y(M.xeqOld),C.muted,1.2,[3,4]); hlabel(cx,'לפני ההאצה',lx2+6,Y(M.xeqOld),C.muted,11,'left'); }
     dashLine(cx,lx1,Y(0),lx2,Y(0),C.nat,1.5);
     if(!same) dashLine(cx,lx1,Y(M.xeq),lx2,Y(M.xeq),C.eq,1.5);
     if(same) hlabel(cx,'רפיון ושיווי משקל',lx2+6,Y(0),C.eq,12,'left');
     else { hlabel(cx,'רפיון',lx2+6,Y(0),C.nat,12,'left'); hlabel(cx,'שיווי משקל',lx2+6,Y(M.xeq),C.eq,12,'left'); }
-    spring(cx,cxm,top,cxm,Y(x),springCol(x));
-    cx.fillStyle=C.block; cx.fillRect(cxm-B/2,Y(x),B,B); cx.strokeStyle=C.ink; cx.lineWidth=1.5; cx.strokeRect(cxm-B/2,Y(x),B,B);
-    mlabel(cx,'m',cxm,Y(x)+B/2,C.ink,15);
+    spring(cx,cxm,top,cxm,Y(x)-R,springCol(x));
+    mass(cxm,Y(x)); mlabel(cx,'m',cxm+20,Y(x),C.ink,15);
     if(!sys.elev){ arrow(cx,cxm-84,Y(0),cxm-84,Y(0)+44,C.muted,1.6); mlabel(cx,'x',cxm-84,Y(0)+56,C.muted,15); }
     return;
   }
@@ -465,35 +461,27 @@ function drawScene(t){
   const x0=(W-Lt*ca)/2, y0=(H-Lt*sa)/2+30;
   const u=[ca,sa], n=[sa,-ca];
   const Pt=(s,h)=>[x0+u[0]*s+n[0]*h, y0+u[1]*s+n[1]*h];
-  const D=axisMap(Lt-B-2*26,26);
-  // slope body
+  const Dm=Math.max(36,0.22*Lt), D=axisMap(Lt-2*Dm,Dm), hc=R+2;
   cx.save(); cx.fillStyle=C.grid; cx.beginPath(); const a1=Pt(0,0), a2=Pt(Lt,0);
   cx.moveTo(a1[0],a1[1]); cx.lineTo(a2[0],a2[1]); cx.lineTo(a1[0],a2[1]); cx.closePath(); cx.fill();
   cx.strokeStyle=C.wall; cx.lineWidth=2; cx.beginPath(); cx.moveTo(a1[0],a1[1]); cx.lineTo(a2[0],a2[1]); cx.stroke(); cx.restore();
   if(p.al>0){ cx.save(); cx.strokeStyle=C.nat; cx.lineWidth=1.3; cx.beginPath(); cx.arc(a2[0],a2[1],28,PI,PI+al); cx.stroke(); cx.restore(); mlabel(cx,'α',a2[0]-40,a2[1]-9,C.nat,14); }
-  // end walls (perpendicular to the slope)
-  const w1a=Pt(0,0), w1b=Pt(0,B+18), w2a=Pt(Lt,0), w2b=Pt(Lt,B+18);
+  const w1a=Pt(0,0), w1b=Pt(0,2*hc+14), w2a=Pt(Lt,0), w2b=Pt(Lt,2*hc+14);
   hatch(cx,w1a[0],w1a[1],w1b[0],w1b[1],[-u[0],-u[1]]);
   hatch(cx,w2a[0],w2a[1],w2b[0],w2b[1],[u[0],u[1]]);
-  // band
-  const b1=D(M.xeq-M.A), b2=D(M.xeq+M.A)+B, q1=Pt(b1,0), q2=Pt(b2,0), q3=Pt(b2,B+10), q4=Pt(b1,B+10);
+  const b1=D(M.xeq-M.A), b2=D(M.xeq+M.A), q1=Pt(b1,0), q2=Pt(b2,0), q3=Pt(b2,2*hc+12), q4=Pt(b1,2*hc+12);
   cx.fillStyle=C.band; cx.beginPath(); cx.moveTo(q1[0],q1[1]); cx.lineTo(q2[0],q2[1]); cx.lineTo(q3[0],q3[1]); cx.lineTo(q4[0],q4[1]); cx.closePath(); cx.fill();
-  // markers at the block's upper edge
-  const mk=(v,col)=>{ const a=Pt(D(v),-6), b=Pt(D(v),B+30); dashLine(cx,a[0],a[1],b[0],b[1],col,1.5); return Pt(D(v),B+42); };
+  const mk=(v,col)=>{ const a=Pt(D(v),-6), b=Pt(D(v),2*hc+34); dashLine(cx,a[0],a[1],b[0],b[1],col,1.5); return Pt(D(v),2*hc+46); };
   const same=Math.abs(D(0)-D(M.xeq))<3;
   const l0=mk(0,C.nat); let le=l0; if(!same) le=mk(M.xeq,C.eq);
   if(same) hlabel(cx,'רפיון ושיווי משקל',l0[0],l0[1],C.eq,12);
   else { hlabel(cx,'רפיון',l0[0]-14,l0[1],C.nat,12); hlabel(cx,'שיווי משקל',le[0]+18,le[1]-12,C.eq,12); }
-  // springs and block
-  const s1=D(x), mid=B/2;
-  const sa1=Pt(0,mid), sb1=Pt(s1,mid), sa2=Pt(s1+B,mid), sb2=Pt(Lt,mid);
+  const s1=D(x), sa1=Pt(0,hc), sb1=Pt(s1-R,hc), sa2=Pt(s1+R,hc), sb2=Pt(Lt,hc);
   spring(cx,sa1[0],sa1[1],sb1[0],sb1[1],springCol(x));
   spring(cx,sa2[0],sa2[1],sb2[0],sb2[1],springCol(-x));
-  const k1p=Pt(s1/2,mid+20), k2p=Pt((s1+B+Lt)/2,mid+20);
+  const k1p=Pt(s1/2,hc+22), k2p=Pt((s1+Lt)/2,hc+22);
   mlabel(cx,'k_1',k1p[0],k1p[1],C.muted,14); mlabel(cx,'k_2',k2p[0],k2p[1],C.muted,14);
-  cx.save(); const c0=Pt(s1+B/2,B/2); cx.translate(c0[0],c0[1]); cx.rotate(al);
-  cx.fillStyle=C.block; cx.fillRect(-B/2,-B/2,B,B); cx.strokeStyle=C.ink; cx.lineWidth=1.5; cx.strokeRect(-B/2,-B/2,B,B); cx.restore();
-  mlabel(cx,'m',c0[0],c0[1],C.ink,15);
+  const c0=Pt(s1,hc); mass(c0[0],c0[1]); const ml=Pt(s1,hc+20); mlabel(cx,'m',ml[0],ml[1],C.ink,15);
   const xa=Pt(D(0),-26), xb=Pt(D(0)+46,-26); arrow(cx,xa[0],xa[1],xb[0],xb[1],C.muted,1.6); const xl=Pt(D(0)+58,-26); mlabel(cx,'x',xl[0],xl[1],C.muted,15);
 }
 
