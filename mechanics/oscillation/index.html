@@ -6,7 +6,7 @@
 <title>תנודות סביב שיווי המשקל</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Heebo:wght@700;800&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
 <style>
 /* Layout: short header, system tabs, then (scene + phasor/graph, time bar) beside a side panel; stacks below 900px */
 :root{
@@ -14,8 +14,8 @@
   --grid:#e3e8ee; --axis:#9aa7b4; --accent:#1b4a72; --accent-ink:#ffffff;
   --c-nat:#c56f14; --c-eq:#0f8475; --c-band:rgba(15,132,117,.09); --c-spring:#4a5866; --c-comp:#b5372a;
   --c-block:#e4ecf5; --c-curve:#2c5fae; --c-wall:#8693a0;
-  --f-display:'Heebo','Assistant','Segoe UI',Arial,sans-serif;
-  --f-body:'Assistant','Segoe UI',Arial,sans-serif;
+  --f-display:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --f-math:'STIX Two Text','Cambria Math','Times New Roman',serif;
 }
 @media (prefers-color-scheme: dark){
@@ -42,7 +42,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-siz
   display:flex;flex-direction:column;gap:16px}
 .m{font-family:var(--f-math);font-style:normal;unicode-bidi:isolate;direction:ltr}
 header.top{display:flex;flex-direction:column;gap:6px}
-h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0;line-height:1.15;text-wrap:balance}
+h1{font-family:var(--f-display);font-weight:600;font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0;line-height:1.15;text-wrap:balance}
 .lede{margin:0;max-width:72ch;color:var(--muted)}
 .key{display:flex;gap:16px;flex-wrap:wrap;font-size:.95rem}
 .key span{display:inline-flex;align-items:center;gap:6px}
@@ -66,10 +66,10 @@ h1{font-family:var(--f-display);font-weight:800;font-size:clamp(1.7rem,3.4vw,2.3
 .timebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .play{font:inherit;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:7px 16px;cursor:pointer;min-width:84px}
 .timebar input[type=range]{flex:1 1 220px;min-width:0;accent-color:var(--accent)}
-.tval{font-family:var(--f-math);font-variant-numeric:tabular-nums;min-width:6.5em;direction:ltr;text-align:left}
+.tval{font-family:var(--f-body);font-variant-numeric:tabular-nums;min-width:6.5em;direction:ltr;text-align:left}
 select{font:inherit;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
-.card h2{font-family:var(--f-display);font-size:1.3rem;margin:0;line-height:1.2}
+.card h2{font-family:var(--f-display);font-weight:600;font-size:1.3rem;margin:0;line-height:1.2}
 .card h3{font-size:.95rem;margin:0;color:var(--muted);font-weight:600}
 .card h4{font-size:.85rem;margin:4px 0 0;color:var(--muted);font-weight:600;border-top:1px solid var(--line);padding-top:10px}
 .eq{display:flex;flex-direction:column;gap:3px}
@@ -78,13 +78,13 @@ select{font:inherit;background:var(--panel);color:var(--ink);border:1px solid va
 .prow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
 .prow label{font-weight:600}
 .prow .unit{color:var(--muted);font-weight:400;font-size:.85rem}
-.prow output{font-family:var(--f-math);font-variant-numeric:tabular-nums;direction:ltr}
+.prow output{font-family:var(--f-body);font-variant-numeric:tabular-nums;direction:ltr}
 .prow input{grid-column:1 / -1;width:100%;accent-color:var(--accent)}
 .presets{display:flex;flex-wrap:wrap;gap:6px}
 .chip{font:inherit;font-size:.88rem;border:1px dashed var(--accent);background:transparent;color:var(--ink);border-radius:6px;padding:4px 10px;cursor:pointer;text-align:start}
 .chip:hover{background:var(--grid)}
 .vals{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:baseline;font-size:.95rem}
-.vals .n{font-family:var(--f-math);font-variant-numeric:tabular-nums;direction:ltr;text-align:left}
+.vals .n{font-family:var(--f-body);font-variant-numeric:tabular-nums;direction:ltr;text-align:left}
 .vals .dim{color:var(--muted);font-size:.82rem}
 .forms{display:flex;flex-direction:column;gap:4px}
 .forms div{font-family:var(--f-math);font-size:1.02rem;direction:ltr;text-align:left;overflow-x:auto;white-space:nowrap}
@@ -363,12 +363,12 @@ function mlabel(cx,txt,x,y,col,size,align,bold){
 }
 function hlabel(cx,txt,x,y,col,size,align){
   cx.save(); cx.direction='rtl'; cx.textAlign=align||'center'; cx.textBaseline='middle';
-  cx.font='600 '+(size||12)+"px 'Assistant','Segoe UI',Arial,sans-serif";
+  cx.font='600 '+(size||12)+"px system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
   cx.lineWidth=4; cx.strokeStyle=C.stage; cx.lineJoin='round'; cx.strokeText(txt,x,y);
   cx.fillStyle=col; cx.fillText(txt,x,y); cx.restore();
 }
 function numText(cx,txt,x,y,col,align){cx.save();cx.direction='ltr';cx.textAlign=align;cx.textBaseline='middle';
-  cx.font="12px 'STIX Two Text',serif";cx.fillStyle=col;cx.fillText(txt,x,y);cx.restore();}
+  cx.font="12px system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";cx.fillStyle=col;cx.fillText(txt,x,y);cx.restore();}
 function arrow(cx,x1,y1,x2,y2,col,w){
   const dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy); if(L<2)return;
   const ux=dx/L,uy=dy/L,hs=Math.min(6+w*1.6,L*0.5),hw=hs*0.55;
