@@ -6,15 +6,15 @@
 <title>נפילה עם גרר</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Frank+Ruhl+Libre:wght@500;700&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
 <style>
 /* Layout: short header, scenario tabs, then (lanes + v(t) graph, time bar) beside a side panel; stacks below 900px */
 :root{
   --paper:#eef1f4; --panel:#fbfcfd; --stage:#fdfeff; --ink:#18232f; --muted:#5a6876; --line:#d3dae1;
   --grid:#e3e8ee; --axis:#9aa7b4; --accent:#1b4a72; --accent-ink:#ffffff;
   --c-free:#6f7e8e; --c-lin:#2c5fae; --c-quad:#c56f14; --c-drag:#0f8475; --c-mg:#18232f; --c-vel:#7845a6;
-  --f-display:'Frank Ruhl Libre','Times New Roman',serif;
-  --f-body:'Assistant','Segoe UI',Arial,sans-serif;
+  --f-display:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --f-math:'STIX Two Text','Cambria Math','Times New Roman',serif;
 }
 @media (prefers-color-scheme: dark){
@@ -38,7 +38,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-siz
   display:flex;flex-direction:column;gap:16px}
 .m{font-family:var(--f-math);font-style:normal;unicode-bidi:isolate;direction:ltr}
 header.top{display:flex;flex-direction:column;gap:6px}
-h1{font-family:var(--f-display);font-weight:700;font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0;line-height:1.15;text-wrap:balance}
+h1{font-family:var(--f-display);font-weight:600;font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0;line-height:1.15;text-wrap:balance}
 .lede{margin:0;max-width:70ch;color:var(--muted)}
 .key{display:flex;gap:16px;flex-wrap:wrap;font-size:.95rem}
 .key span{display:inline-flex;align-items:center;gap:6px}
@@ -63,10 +63,10 @@ h1{font-family:var(--f-display);font-weight:700;font-size:clamp(1.7rem,3.4vw,2.3
 .timebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .play{font:inherit;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:7px 16px;cursor:pointer;min-width:84px}
 .timebar input[type=range]{flex:1 1 220px;min-width:0;accent-color:var(--accent)}
-.tval{font-family:var(--f-math);font-variant-numeric:tabular-nums;min-width:6.5em;direction:ltr;text-align:left}
+.tval{font-family:var(--f-body);font-variant-numeric:tabular-nums;min-width:6.5em;direction:ltr;text-align:left}
 select{font:inherit;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
-.card h2{font-family:var(--f-display);font-size:1.3rem;margin:0;line-height:1.2}
+.card h2{font-family:var(--f-display);font-weight:600;font-size:1.3rem;margin:0;line-height:1.2}
 .card h3{font-size:.95rem;margin:0;color:var(--muted);font-weight:600}
 .src{font-size:.85rem;color:var(--muted);margin-top:-6px}
 .eq{display:flex;flex-direction:column;gap:4px}
@@ -77,7 +77,7 @@ select{font:inherit;background:var(--panel);color:var(--ink);border:1px solid va
 .prow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
 .prow label{font-weight:600}
 .prow .unit{color:var(--muted);font-weight:400;font-size:.85rem}
-.prow output{font-family:var(--f-math);font-variant-numeric:tabular-nums;direction:ltr}
+.prow output{font-family:var(--f-body);font-variant-numeric:tabular-nums;direction:ltr}
 .prow input{grid-column:1 / -1;width:100%;accent-color:var(--accent)}
 .derived{display:flex;flex-direction:column;gap:2px;font-size:.92rem;border-top:1px solid var(--line);padding-top:8px}
 .derived .m{font-size:1.02rem}
@@ -87,7 +87,7 @@ th:first-child{text-align:right}
 th .hd{display:inline-block;border-bottom:3px solid currentColor;padding-bottom:2px;line-height:1.25}
 td{padding:5px 0;border-top:1px solid var(--line);vertical-align:middle}
 tr.sep td{border-top:2px solid var(--line)}
-td.n{font-family:var(--f-math);font-variant-numeric:tabular-nums;direction:ltr;text-align:left;white-space:nowrap;padding-inline-start:8px}
+td.n{font-family:var(--f-body);font-variant-numeric:tabular-nums;direction:ltr;text-align:left;white-space:nowrap;padding-inline-start:8px}
 td .m{font-size:1.04rem}
 .dim{color:var(--muted);font-size:.8rem}
 </style>
@@ -399,13 +399,13 @@ function mlabel(cx,txt,x,y,col,size,align,bold){
 }
 function hlabel(cx,txt,x,y,col,size,weight,align){
   cx.save(); cx.direction='rtl'; cx.textAlign=align||'center'; cx.textBaseline='middle';
-  cx.font=(weight||600)+' '+(size||13)+"px 'Assistant','Segoe UI',Arial,sans-serif";
+  cx.font=(weight||600)+' '+(size||13)+"px system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif";
   cx.lineWidth=4; cx.strokeStyle=C.stage; cx.lineJoin='round'; cx.strokeText(txt,x,y);
   cx.fillStyle=col; cx.fillText(txt,x,y); cx.restore();
 }
 function numText(cx,txt,x,y,col,align){
   cx.save(); cx.direction='ltr'; cx.textAlign=align; cx.textBaseline='middle';
-  cx.font="12px 'STIX Two Text',serif"; cx.fillStyle=col; cx.fillText(txt,x,y); cx.restore();
+  cx.font="12px system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"; cx.fillStyle=col; cx.fillText(txt,x,y); cx.restore();
 }
 
 /* ---------- render ---------- */

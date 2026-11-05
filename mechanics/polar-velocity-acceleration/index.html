@@ -6,15 +6,15 @@
 <title>וקטורי המהירות והתאוצה</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Assistant:wght@400;600;700&family=Frank+Ruhl+Libre:wght@500;700&family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=STIX+Two+Text:ital,wght@0,400;0,600;1,400&display=swap">
 <style>
 /* Layout: short header, scenario tabs, then stage + side panel (stacks below 900px) */
 :root{
   --paper:#eef1f4; --panel:#fbfcfd; --stage:#fdfeff; --ink:#18232f; --muted:#5a6876; --line:#d3dae1;
   --grid:#e3e8ee; --axis:#9aa7b4; --accent:#1b4a72; --accent-ink:#ffffff;
   --c-a:#b5372a; --c-v:#2c5fae; --c-unit:#0f8475; --rod:#8b7356; --bead:#d9822b;
-  --f-display:'Frank Ruhl Libre','Times New Roman',serif;
-  --f-body:'Assistant','Segoe UI',Arial,sans-serif;
+  --f-display:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --f-body:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   --f-math:'STIX Two Text','Cambria Math','Times New Roman',serif;
 }
 @media (prefers-color-scheme: dark){
@@ -39,7 +39,7 @@ body{background:var(--paper);color:var(--ink);font-family:var(--f-body);font-siz
 .m{font-family:var(--f-math);font-style:normal;unicode-bidi:isolate;direction:ltr}
 header.top{display:flex;flex-direction:column;gap:6px}
 .eyebrow{color:var(--muted);font-size:.85rem;letter-spacing:.02em}
-h1{font-family:var(--f-display);font-weight:700;font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0;line-height:1.15;text-wrap:balance}
+h1{font-family:var(--f-display);font-weight:600;font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0;line-height:1.15;text-wrap:balance}
 .lede{margin:0;max-width:68ch;color:var(--muted)}
 .key{display:flex;gap:16px;flex-wrap:wrap;font-size:.95rem}
 .key span{display:inline-flex;align-items:center;gap:6px}
@@ -58,10 +58,10 @@ h1{font-family:var(--f-display);font-weight:700;font-size:clamp(1.7rem,3.4vw,2.3
 .timebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .play{font:inherit;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:7px 16px;cursor:pointer;min-width:84px}
 .timebar input[type=range]{flex:1 1 220px;min-width:0;accent-color:var(--accent)}
-.tval{font-family:var(--f-math);font-variant-numeric:tabular-nums;min-width:6.5em;direction:ltr;text-align:left}
+.tval{font-family:var(--f-body);font-variant-numeric:tabular-nums;min-width:6.5em;direction:ltr;text-align:left}
 select{font:inherit;background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:6px;padding:4px 6px}
 .card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
-.card h2{font-family:var(--f-display);font-size:1.3rem;margin:0;line-height:1.2}
+.card h2{font-family:var(--f-display);font-weight:600;font-size:1.3rem;margin:0;line-height:1.2}
 .card h3{font-size:.95rem;margin:0;color:var(--muted);font-weight:600}
 .src{font-size:.85rem;color:var(--muted);margin-top:-6px}
 .eq{font-family:var(--f-math);font-size:1.15rem;direction:ltr;text-align:right;overflow-x:auto}
@@ -74,12 +74,12 @@ select{font:inherit;background:var(--panel);color:var(--ink);border:1px solid va
 .prow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:center}
 .prow label{font-weight:600}
 .prow .unit{color:var(--muted);font-weight:400;font-size:.85rem}
-.prow output{font-family:var(--f-math);font-variant-numeric:tabular-nums;direction:ltr}
+.prow output{font-family:var(--f-body);font-variant-numeric:tabular-nums;direction:ltr}
 .prow input{grid-column:1 / -1;width:100%;accent-color:var(--accent)}
 table{width:100%;border-collapse:collapse;font-size:.95rem}
 td{padding:5px 0;border-bottom:1px solid var(--line);vertical-align:middle}
 tr:last-child td{border-bottom:0}
-td.n{font-family:var(--f-math);font-variant-numeric:tabular-nums;direction:ltr;text-align:left;white-space:nowrap}
+td.n{font-family:var(--f-body);font-variant-numeric:tabular-nums;direction:ltr;text-align:left;white-space:nowrap}
 td .m{font-size:1.05rem}
 .dim{color:var(--muted);font-size:.82rem}
 </style>
@@ -311,7 +311,7 @@ function drawStage(k){
   ctx.strokeStyle=C.axis; ctx.beginPath(); ctx.moveTo(0,oy); ctx.lineTo(W,oy); ctx.moveTo(ox,0); ctx.lineTo(ox,H); ctx.stroke();
   ctx.restore();
   label('x',W-12,oy-12,C.muted,15); label('y',ox+12,12,C.muted,15);
-  ctx.save(); ctx.font="12px 'STIX Two Text',serif"; ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.direction='ltr';
+  ctx.save(); ctx.font="12px system-ui,-apple-system,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif"; ctx.fillStyle=C.muted; ctx.textAlign='center'; ctx.direction='ltr';
   for(let i=1;i*step*s<W-ox-20&&i<60;i++){ if(i%2===0&&step*s<45)continue; ctx.fillText(fmt(i*step),ox+i*step*s,oy+14); }
   ctx.restore();
   // path: full (faint) and travelled (solid)
